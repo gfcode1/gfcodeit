@@ -1,0 +1,13 @@
+{
+  "id": "soundscape",
+  "name": "Soundscape",
+  "description": "Layer ambient sounds for focus and calm.",
+  "icon": "1F332",
+  "color": "#1f7a4d",
+  "category": "media",
+  "version": "1.0.0",
+  "sdk": "^1.0.0",
+  "entry": "index.html",
+  "permissions": ["storage", "profile", "ui.toast"],
+  "storage": { "scope": "profile", "schemaVersion": 1 }
+}

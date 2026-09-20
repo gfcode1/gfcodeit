@@ -1,0 +1,13 @@
+{
+  "id": "somafm",
+  "name": "SomaFM",
+  "description": "Stream SomaFM's commercial-free radio channels with live now-playing.",
+  "icon": "1F4FB",
+  "color": "#e8552d",
+  "category": "media",
+  "version": "1.0.0",
+  "sdk": "^1.0.0",
+  "entry": "index.html",
+  "permissions": ["storage", "profile", "ui.toast", "ui.confirm", "notifications"],
+  "storage": { "scope": "profile", "schemaVersion": 1 }
+}

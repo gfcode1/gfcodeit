@@ -1,0 +1,13 @@
+{
+  "id": "notes",
+  "name": "Notes",
+  "description": "Quick notes, saved per profile.",
+  "icon": "1F4DD",
+  "color": "#ff4d00",
+  "category": "productivity",
+  "version": "1.0.0",
+  "sdk": "^1.0.0",
+  "entry": "index.html",
+  "permissions": ["storage", "profile", "ui.toast", "ui.confirm", "notifications"],
+  "storage": { "scope": "profile", "schemaVersion": 1 }
+}

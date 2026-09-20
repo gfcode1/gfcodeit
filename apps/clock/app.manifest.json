@@ -1,0 +1,13 @@
+{
+  "id": "clock",
+  "name": "Clock",
+  "description": "Clock, countdown timer, alarms and stopwatch in one place.",
+  "icon": "23F0",
+  "color": "#0057ff",
+  "category": "utilities",
+  "version": "1.0.0",
+  "sdk": "^1.0.0",
+  "entry": "index.html",
+  "permissions": ["storage", "profile", "ui.toast", "ui.confirm", "notifications", "scheduler"],
+  "storage": { "scope": "profile", "schemaVersion": 1 }
+}

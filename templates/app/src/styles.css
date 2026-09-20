@@ -1,0 +1,12 @@
+:root {
+  font-family: var(--gf-font-sans);
+}
+
+#app {
+  padding: var(--gf-s4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gf-s4);
+  max-width: 760px;
+  margin: 0 auto;
+}

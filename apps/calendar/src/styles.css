@@ -1,0 +1,224 @@
+:root {
+  font-family: var(--gf-font-sans);
+}
+
+#app {
+  padding: var(--gf-s4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gf-s4);
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.calendar {
+  border: var(--gf-border-w) solid var(--gf-ink);
+  background: var(--gf-surface);
+  box-shadow: var(--gf-shadow-2);
+}
+
+.calendar__head {
+  display: flex;
+  align-items: center;
+  gap: var(--gf-s3);
+  padding: var(--gf-s2) var(--gf-s3);
+  border-bottom: var(--gf-border-w) solid var(--gf-ink);
+}
+
+.calendar__title {
+  flex: 1;
+  text-align: center;
+  font-family: var(--gf-font-mono);
+  font-size: var(--gf-fs-sm);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  padding: var(--gf-s2);
+}
+
+.weekday {
+  text-align: center;
+  font-family: var(--gf-font-mono);
+  font-size: var(--gf-fs-xs);
+  text-transform: uppercase;
+  color: var(--gf-muted);
+  padding: var(--gf-s1) 0;
+}
+
+.day {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 2px;
+  padding-top: var(--gf-s1);
+  border: 2px solid transparent;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.day:hover { border-color: var(--gf-ink); }
+.day.is-out { color: var(--gf-muted); opacity: .5; }
+.day.is-today { border-color: var(--gf-ink); }
+.day.is-selected { background: var(--gf-accent); color: var(--gf-accent-ink); }
+.day.is-selected .day__num { font-weight: 700; }
+
+.day__num {
+  font-family: var(--gf-font-mono);
+  font-size: var(--gf-fs-sm);
+  line-height: 1.1;
+}
+
+.day__dots {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.day__more {
+  font-family: var(--gf-font-mono);
+  font-size: 9px;
+  color: var(--gf-muted);
+}
+
+.agenda {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gf-s3);
+}
+
+.agenda__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gf-s3);
+}
+
+.agenda__title {
+  font-size: var(--gf-fs-lg);
+}
+
+.event-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gf-s2);
+}
+
+.event {
+  display: flex;
+  align-items: stretch;
+  gap: var(--gf-s3);
+  border: var(--gf-border-w) solid var(--gf-ink);
+  background: var(--gf-surface);
+  padding: var(--gf-s3);
+}
+
+.event__bar {
+  width: 6px;
+  flex: none;
+  border: 1px solid var(--gf-ink);
+}
+
+.event__body { flex: 1; min-width: 0; }
+.event__title { font-size: var(--gf-fs-md); }
+.event__meta {
+  font-family: var(--gf-font-mono);
+  font-size: var(--gf-fs-xs);
+  color: var(--gf-muted);
+  margin-top: var(--gf-s1);
+}
+.event__notes {
+  font-size: var(--gf-fs-sm);
+  color: var(--gf-muted);
+  margin-top: var(--gf-s2);
+  white-space: pre-wrap;
+}
+
+.event__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--gf-s2);
+  flex: none;
+}
+
+.upcoming {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gf-s2);
+}
+
+.upcoming__label {
+  font-family: var(--gf-font-mono);
+  font-size: var(--gf-fs-xs);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--gf-muted);
+}
+
+.upcoming__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gf-s2);
+}
+
+.upcoming__item {
+  border: var(--gf-border-w) solid var(--gf-ink);
+  border-left-width: 6px;
+  background: var(--gf-surface);
+  color: var(--gf-ink);
+  font-family: var(--gf-font-mono);
+  font-size: var(--gf-fs-xs);
+  padding: var(--gf-s1) var(--gf-s2);
+  cursor: pointer;
+}
+
+.upcoming__item:hover { background: var(--gf-ink); color: var(--gf-paper); }
+
+.event-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gf-s3);
+}
+
+.event-form__row {
+  display: flex;
+  gap: var(--gf-s3);
+}
+
+.event-form__row > * { flex: 1; }
+
+.swatches {
+  display: flex;
+  gap: var(--gf-s2);
+}
+
+.swatch {
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--gf-ink);
+  cursor: pointer;
+}
+
+.swatch.is-active {
+  outline: 3px solid var(--gf-ink);
+  outline-offset: 2px;
+}
+
+@media (max-width: 480px) {
+  .event-form__row { flex-direction: column; }
+  .event { flex-wrap: wrap; }
+}

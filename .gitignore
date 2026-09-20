@@ -1,0 +1,8 @@
+node_modules/
+dist/
+public/framework/
+public/openmoji/
+public/icons/*.png
+*.log
+.DS_Store
+.vite/

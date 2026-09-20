@@ -1,0 +1,13 @@
+{
+  "id": "__ID__",
+  "name": "__NAME__",
+  "description": "TODO: describe this app.",
+  "icon": "__ICON__",
+  "color": "#ff4d00",
+  "category": "misc",
+  "version": "1.0.0",
+  "sdk": "^1.0.0",
+  "entry": "index.html",
+  "permissions": ["storage", "profile", "ui.toast"],
+  "storage": { "scope": "profile", "schemaVersion": 1 }
+}

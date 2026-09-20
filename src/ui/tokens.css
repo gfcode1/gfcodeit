@@ -1,0 +1,71 @@
+:root {
+  color-scheme: light;
+
+  /* surfaces */
+  --gf-paper: #f4f4ef;
+  --gf-ink: #111111;
+  --gf-muted: #6b6b63;
+  --gf-line: #111111;
+  --gf-surface: #ffffff;
+  --gf-surface-2: #ecece4;
+  --gf-danger: #d40000;
+  --gf-ok: #0a7d32;
+
+  /* borders / elevation */
+  --gf-border-w: 2px;
+  --gf-radius: 0px;
+  --gf-shadow-1: 2px 2px 0 var(--gf-ink);
+  --gf-shadow-2: 4px 4px 0 var(--gf-ink);
+  --gf-shadow-3: 6px 6px 0 var(--gf-ink);
+
+  /* typography */
+  --gf-font-sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --gf-font-mono: ui-monospace, "JetBrains Mono", "IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+  --gf-fs-xs: 11px;
+  --gf-fs-sm: 13px;
+  --gf-fs-md: 15px;
+  --gf-fs-lg: 18px;
+  --gf-fs-xl: 24px;
+  --gf-fs-2xl: 32px;
+
+  /* spacing */
+  --gf-s1: 4px;
+  --gf-s2: 8px;
+  --gf-s3: 12px;
+  --gf-s4: 16px;
+  --gf-s5: 24px;
+  --gf-s6: 32px;
+
+  /* motion */
+  --gf-dur-fast: 120ms;
+  --gf-dur: 160ms;
+  --gf-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+  /* accent (overridden per profile at runtime) */
+  --gf-accent: #ff4d00;
+  --gf-accent-ink: #ffffff;
+  --gf-focus: 3px solid var(--gf-accent);
+
+  /* chrome */
+  --gf-bar-h: 52px;
+  --gf-nav-h: 56px;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --gf-paper: #121212;
+  --gf-ink: #eaeaea;
+  --gf-muted: #9a9a92;
+  --gf-line: #eaeaea;
+  --gf-surface: #1a1a1a;
+  --gf-surface-2: #242424;
+  --gf-danger: #ff5a4d;
+  --gf-ok: #4ad07a;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --gf-dur-fast: 0ms;
+    --gf-dur: 0ms;
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "id": "weather",
+  "name": "Weather",
+  "description": "Current conditions and 7-day forecast via Open-Meteo.",
+  "icon": "1F324",
+  "color": "#0057ff",
+  "category": "utilities",
+  "version": "1.0.0",
+  "sdk": "^1.0.0",
+  "entry": "index.html",
+  "permissions": ["storage", "profile", "ui.toast", "notifications"],
+  "storage": { "scope": "profile", "schemaVersion": 1 }
+}

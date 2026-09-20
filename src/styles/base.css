@@ -1,0 +1,97 @@
+[hidden] {
+  display: none !important;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--gf-paper);
+  color: var(--gf-ink);
+  font-family: var(--gf-font-sans);
+  font-size: var(--gf-fs-md);
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin: 0;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+a {
+  color: inherit;
+}
+
+code,
+kbd,
+samp {
+  font-family: var(--gf-font-mono);
+  font-size: 0.92em;
+}
+
+:focus-visible {
+  outline: var(--gf-focus);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--gf-accent);
+  color: var(--gf-accent-ink);
+}
+
+/* thin brutalist scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--gf-ink) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--gf-ink);
+  border: 2px solid var(--gf-paper);
+}
+
+.gf-label {
+  font-family: var(--gf-font-mono);
+  font-size: var(--gf-fs-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gf-muted);
+}
+
+.gf-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
