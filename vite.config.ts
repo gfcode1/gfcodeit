@@ -39,12 +39,43 @@ function copyAppManifests(): Plugin {
   }
 }
 
+/**
+ * Baseline CSP injected only into production HTML (a meta tag is the only knob
+ * available on GitHub Pages). Apps stream/fetch third-party media and APIs, so
+ * media/connect stay broad; the wins are script-src, object-src and base-uri.
+ */
+const CSP = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https: http:",
+  "font-src 'self'",
+  "media-src 'self' blob: data: https: http:",
+  "connect-src 'self' https: http:",
+  "frame-src 'self'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+].join('; ')
+
+function injectCsp(): Plugin {
+  return {
+    name: 'gf:inject-csp',
+    apply: 'build',
+    transformIndexHtml(html) {
+      if (html.includes('Content-Security-Policy')) return html
+      return html.replace('</head>', `  <meta http-equiv="Content-Security-Policy" content="${CSP}" />\n  </head>`)
+    },
+  }
+}
+
 const BASE = '/gfcodeit/'
 
 export default defineConfig({
   base: BASE,
   plugins: [
     copyAppManifests(),
+    injectCsp(),
     VitePWA({
       registerType: 'prompt',
       injectRegister: null,

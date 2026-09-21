@@ -25,6 +25,20 @@ import { createMediaHub } from '../core/media'
 import { installAudioUnlock, playAlarm, stopAlarm } from '../core/audio'
 import { toast } from '../ui/overlay'
 import { AppHost } from './app-host'
+import {
+  asRecord,
+  optBool,
+  optNumber,
+  optString,
+  parseMediaMetadata,
+  parseMediaSource,
+  parseThemeMode,
+  reqBool,
+  reqInt,
+  reqNumber,
+  reqString,
+  type Params,
+} from './bridge-guards'
 import { createMediaBar } from './media-bar'
 import { createLauncher } from './launcher'
 import { renderProfiles, renderSettings } from './views'
@@ -41,7 +55,6 @@ import {
 import type {
   AppManifest,
   BridgeMethod,
-  MediaSourceInit,
   Profile,
   ScheduleDraft,
   ScheduleItem,
@@ -536,73 +549,86 @@ function mediaOwner(): string {
   return id
 }
 
+function parseToastVariant(params: Params): 'default' | 'ok' | 'danger' | undefined {
+  const variant = optString(params, 'variant', 16)
+  if (variant === undefined) return undefined
+  if (variant !== 'default' && variant !== 'ok' && variant !== 'danger') {
+    throw Object.assign(new Error('Invalid "variant"'), { code: 'E_PARAM' })
+  }
+  return variant
+}
+
 const bridgeHandlers: Partial<Record<BridgeMethod, (params: unknown) => unknown | Promise<unknown>>> = {
   'media.play': (params) => {
-    const p = params as { id: string; source: MediaSourceInit }
-    return mediaHub.play(mediaOwner(), p.id, p.source)
+    const p = asRecord(params)
+    return mediaHub.play(mediaOwner(), reqString(p, 'id', 128), parseMediaSource(p.source))
   },
   'media.load': (params) => {
-    const p = params as { id: string; source: MediaSourceInit }
-    return mediaHub.load(mediaOwner(), p.id, p.source)
+    const p = asRecord(params)
+    return mediaHub.load(mediaOwner(), reqString(p, 'id', 128), parseMediaSource(p.source))
   },
   'media.pause': (params) => {
-    const p = params as { id?: string }
-    return mediaHub.pause(mediaOwner(), p.id)
+    const p = asRecord(params)
+    return mediaHub.pause(mediaOwner(), optString(p, 'id', 128))
   },
   'media.resume': (params) => {
-    const p = params as { id?: string }
-    return mediaHub.resume(mediaOwner(), p.id)
+    const p = asRecord(params)
+    return mediaHub.resume(mediaOwner(), optString(p, 'id', 128))
   },
   'media.remove': (params) => {
-    const p = params as { id: string; fadeMs?: number }
-    return mediaHub.remove(mediaOwner(), p.id, p.fadeMs)
+    const p = asRecord(params)
+    return mediaHub.remove(mediaOwner(), reqString(p, 'id', 128), optNumber(p, 'fadeMs'))
   },
   'media.clear': () => mediaHub.clear(mediaOwner()),
   'media.setVolume': (params) => {
-    const p = params as { id: string; volume: number; fadeMs?: number }
-    return mediaHub.setVolume(mediaOwner(), p.id, p.volume, p.fadeMs)
+    const p = asRecord(params)
+    return mediaHub.setVolume(mediaOwner(), reqString(p, 'id', 128), reqNumber(p, 'volume'), optNumber(p, 'fadeMs'))
   },
   'media.setMasterVolume': (params) => {
-    const p = params as { volume: number; fadeMs?: number }
-    return mediaHub.setMasterVolume(mediaOwner(), p.volume, p.fadeMs)
+    const p = asRecord(params)
+    return mediaHub.setMasterVolume(mediaOwner(), reqNumber(p, 'volume'), optNumber(p, 'fadeMs'))
   },
-  'media.setPaused': (params) => {
-    const p = params as { paused: boolean }
-    return mediaHub.setPaused(mediaOwner(), p.paused)
-  },
+  'media.setPaused': (params) => mediaHub.setPaused(mediaOwner(), reqBool(asRecord(params), 'paused')),
   'media.setMetadata': (params) => {
-    const p = params as { id: string; meta: Partial<MediaSourceInit> }
-    return mediaHub.setMetadata(mediaOwner(), p.id, p.meta)
+    const p = asRecord(params)
+    return mediaHub.setMetadata(mediaOwner(), reqString(p, 'id', 128), parseMediaMetadata(p.meta))
   },
   'media.list': () => mediaHub.list(mediaOwner()),
   'media.setSleepTimer': (params) => {
-    const p = params as { ms: number | null }
-    return mediaHub.setSleepTimer(mediaOwner(), p.ms)
+    const p = asRecord(params)
+    const ms = optNumber(p, 'ms')
+    return mediaHub.setSleepTimer(mediaOwner(), ms === undefined ? null : ms)
   },
   'ui.toast': (params) => {
-    const p = params as { message: string; variant?: 'default' | 'ok' | 'danger'; duration?: number }
-    toast(p.message, { variant: p.variant, duration: p.duration })
+    const p = asRecord(params)
+    toast(reqString(p, 'message', 2000), { variant: parseToastVariant(p), duration: optNumber(p, 'duration') })
     return true
   },
   'ui.confirm': async (params) => {
-    const p = params as { message: string; title?: string; okLabel?: string; danger?: boolean }
-    return { ok: await openConfirm(p.message, p) }
+    const p = asRecord(params)
+    return {
+      ok: await openConfirm(reqString(p, 'message', 2000), {
+        title: optString(p, 'title', 200),
+        okLabel: optString(p, 'okLabel', 100),
+        danger: optBool(p, 'danger'),
+      }),
+    }
   },
   'ui.modal': (params) => {
-    const p = params as { title: string; content: string }
-    openModal(p.title, p.content)
+    const p = asRecord(params)
+    openModal(reqString(p, 'title', 200), reqString(p, 'content', 10_000))
     return true
   },
   'ui.badge': (params) => {
-    const p = params as { count: number }
+    const count = reqInt(asRecord(params), 'count')
     const id = appHost?.appId
-    if (id) badges.set(id, Math.max(0, Math.floor(p.count)))
+    if (id) badges.set(id, Math.max(0, Math.min(count, 9999)))
     applyBadges()
     return true
   },
   'shell.navigate': (params) => {
-    const p = params as { target: string }
-    navigate(p.target.startsWith('#') ? p.target : `${APP_ROUTE_PREFIX}${p.target.replace(/^\/?app\//, '')}`)
+    const target = reqString(asRecord(params), 'target', 1024)
+    navigate(target.startsWith('#') ? target : `${APP_ROUTE_PREFIX}${target.replace(/^\/?app\//, '')}`)
     return true
   },
   'shell.home': () => {
@@ -610,25 +636,24 @@ const bridgeHandlers: Partial<Record<BridgeMethod, (params: unknown) => unknown 
     return true
   },
   'theme.set': (params) => {
-    const p = params as { mode: ThemeMode }
-    setTheme(p.mode)
+    setTheme(parseThemeMode(params))
     return true
   },
   'scheduler.schedule': (params) => {
     const appId = appHost?.appId
     if (!appId) throw Object.assign(new Error('No active app'), { code: 'E_SCHEDULE' })
-    return scheduler.schedule(appId, params as ScheduleDraft)
+    return scheduler.schedule(appId, asRecord(params) as unknown as ScheduleDraft)
   },
   'scheduler.cancel': (params) => {
     const appId = appHost?.appId
     if (!appId) return false
-    return scheduler.cancel(appId, (params as { id: string }).id)
+    return scheduler.cancel(appId, reqString(asRecord(params), 'id', 128))
   },
   'scheduler.snooze': (params) => {
     const appId = appHost?.appId
     if (!appId) return false
-    const p = params as { id: string; ms?: number }
-    return scheduler.snooze(appId, p.id, p.ms)
+    const p = asRecord(params)
+    return scheduler.snooze(appId, reqString(p, 'id', 128), optNumber(p, 'ms'))
   },
   'scheduler.list': () => {
     const appId = appHost?.appId

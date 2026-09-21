@@ -5,7 +5,7 @@ Static, PWA-ready mini-app framework. A persistent shell (`index.html`) hosts ap
 
 ## Requirements
 
-Node 20+, pnpm 10+. No git repo is checked in here.
+Node 20+, pnpm 10+.
 
 ## Setup / generated files
 
@@ -38,6 +38,13 @@ BASE_URL=... CHROME=/path/to/chrome pnpm smoke
 
 `scripts/smoke.mjs` is the end-to-end acceptance gate — extend it whenever you add or
 change an app.
+
+## Deploy / CI
+
+Git repo lives on `main`; `.github/workflows/deploy.yml` runs
+`pnpm install --frozen-lockfile && pnpm build` and publishes `dist/` to GitHub Pages on
+every push to `main`. Nothing generated is committed — `dist/` and the `public/` trees are
+built in the runner. `base` is hardcoded `/gfcodeit/` to match the repo name.
 
 ## Two Vite builds (most important gotcha)
 

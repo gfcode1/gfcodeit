@@ -62,6 +62,8 @@ export interface HelloMessage {
 export interface WelcomeMessage {
   t: 'gf:welcome'
   v: number
+  /** Per-open secret echoed back so the client can prove the shell saw its hello. */
+  token: string
   theme: { mode: ThemeMode; accent: string; resolved: 'light' | 'dark' }
   profile: Pick<Profile, 'id' | 'name' | 'avatar' | 'accent'>
 }

@@ -23,6 +23,58 @@ interface KvRecord {
 }
 
 const SHARED = '*'
+const MAX_BACKUP_BYTES = 32 * 1024 * 1024
+const MAX_PROFILES = 100
+const MAX_ENTRIES = 50_000
+
+const APP_ID = /^[a-z][a-z0-9-]{1,63}$/
+const OWNER = /^([0-9a-fA-F]{8}-[0-9a-fA-F-]{20,}|default|\*)$/
+const PROFILE_ID = /^[0-9a-fA-F-]{8,64}$/
+const THEME_MODES = new Set(['light', 'dark', 'system'])
+
+function backupError(message: string): never {
+  throw new Error(`E_BACKUP: ${message}`)
+}
+
+/** Rebuilds a profile from known fields so a crafted file cannot inject extras. */
+function sanitizeProfile(value: unknown): Profile {
+  if (typeof value !== 'object' || value === null) backupError('malformed profile')
+  const raw = value as Record<string, unknown>
+  if (typeof raw.id !== 'string' || !PROFILE_ID.test(raw.id)) backupError('malformed profile id')
+  if (typeof raw.name !== 'string' || raw.name.length === 0 || raw.name.length > 64) {
+    backupError('malformed profile name')
+  }
+  const now = Date.now()
+  const favorites = Array.isArray(raw.favorites)
+    ? raw.favorites.filter((id): id is string => typeof id === 'string').slice(0, 200)
+    : []
+  const recent = Array.isArray(raw.recent)
+    ? raw.recent
+        .filter(
+          (entry): entry is { appId: string; at: number } =>
+            typeof entry === 'object' &&
+            entry !== null &&
+            typeof (entry as { appId?: unknown }).appId === 'string' &&
+            typeof (entry as { at?: unknown }).at === 'number',
+        )
+        .slice(0, 50)
+    : []
+  return {
+    id: raw.id,
+    name: raw.name.slice(0, 64),
+    avatar: typeof raw.avatar === 'string' ? raw.avatar.slice(0, 32) : '1F464',
+    accent: typeof raw.accent === 'string' ? raw.accent.slice(0, 64) : '#ff4d00',
+    themeMode:
+      typeof raw.themeMode === 'string' && THEME_MODES.has(raw.themeMode)
+        ? (raw.themeMode as Profile['themeMode'])
+        : 'system',
+    isDefault: raw.isDefault === true,
+    createdAt: typeof raw.createdAt === 'number' && Number.isFinite(raw.createdAt) ? raw.createdAt : now,
+    lastUsedAt: typeof raw.lastUsedAt === 'number' && Number.isFinite(raw.lastUsedAt) ? raw.lastUsedAt : now,
+    favorites,
+    recent,
+  }
+}
 
 async function readAppData(filter?: (appId: string, owner: string) => boolean): Promise<AppData> {
   const db = await openDB()
@@ -127,19 +179,46 @@ export async function importBackup(file: BackupFile, mode: ImportMode = 'merge')
   if (!file || typeof file !== 'object' || file.gfc !== BACKUP_VERSION) {
     throw new Error('E_BACKUP: unsupported or invalid backup file')
   }
-  const profiles = file.profiles ?? []
-  if (!Array.isArray(profiles) || profiles.some((p) => !p || typeof p.id !== 'string')) {
+  const rawProfiles = file.profiles ?? []
+  if (!Array.isArray(rawProfiles) || rawProfiles.length > MAX_PROFILES) {
     throw new Error('E_BACKUP: malformed profiles section')
   }
-  const data = file.data ?? {}
-  if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+  const profiles = rawProfiles.map(sanitizeProfile)
+
+  const rawData = file.data ?? {}
+  if (typeof rawData !== 'object' || rawData === null || Array.isArray(rawData)) {
     throw new Error('E_BACKUP: malformed data section')
   }
-  for (const owners of Object.values(data)) {
-    if (typeof owners !== 'object' || owners === null) {
-      throw new Error('E_BACKUP: malformed app data')
+
+  let count = 0
+  const data: AppData = {}
+  for (const [appId, owners] of Object.entries(rawData)) {
+    if (!APP_ID.test(appId)) backupError(`invalid app id "${appId}"`)
+    if (typeof owners !== 'object' || owners === null || Array.isArray(owners)) {
+      backupError('malformed app data')
     }
+    const cleanOwners: Record<string, Record<string, unknown>> = {}
+    for (const [owner, entries] of Object.entries(owners as Record<string, unknown>)) {
+      if (!OWNER.test(owner)) backupError(`invalid data owner "${owner}"`)
+      if (typeof entries !== 'object' || entries === null || Array.isArray(entries)) {
+        backupError('malformed owner data')
+      }
+      const cleanEntries: Record<string, unknown> = {}
+      for (const [key, value] of Object.entries(entries as Record<string, unknown>)) {
+        if (key.length === 0 || key.length > 512) backupError('invalid data key')
+        if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+          backupError('reserved data key')
+        }
+        if (key.startsWith(CACHE_KEY_PREFIX)) continue
+        count += 1
+        if (count > MAX_ENTRIES) backupError(`too many entries (max ${MAX_ENTRIES})`)
+        cleanEntries[key] = value
+      }
+      cleanOwners[owner] = cleanEntries
+    }
+    data[appId] = cleanOwners
   }
+
   await writeProfiles(profiles, mode)
   await writeAppData(data, mode)
 }
@@ -157,6 +236,7 @@ export function downloadBackup(file: BackupFile, filename: string): void {
 }
 
 export async function readBackupFile(file: File): Promise<BackupFile> {
+  if (file.size > MAX_BACKUP_BYTES) throw new Error('E_BACKUP: backup file too large')
   const text = await file.text()
   return JSON.parse(text) as BackupFile
 }

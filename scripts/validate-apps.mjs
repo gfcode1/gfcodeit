@@ -16,8 +16,6 @@ const PERMISSIONS = [
   'theme.write',
   'notifications',
   'scheduler',
-  'clipboard',
-  'external',
   'media',
 ]
 

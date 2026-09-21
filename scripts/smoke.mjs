@@ -293,6 +293,22 @@ try {
   await page.locator('.toast', { hasText: 'Smoke timer' }).first().waitFor({ timeout: 8000 })
   check('scheduled entry fires in the shell', true)
 
+  const badKind = await calendarFrame.evaluate(() =>
+    window.GF.scheduler
+      .schedule({ kind: 'bogus', title: 'x', delayMs: 1000 })
+      .then(() => 'allowed')
+      .catch((error) => error.code),
+  )
+  check('scheduler rejects an unknown kind', badKind === 'E_SCHEDULE', String(badKind))
+
+  const badInterval = await calendarFrame.evaluate(() =>
+    window.GF.scheduler
+      .schedule({ kind: 'timer', title: 'x', delayMs: 1000, repeat: { mode: 'interval', everyMs: 10 } })
+      .then(() => 'allowed')
+      .catch((error) => error.code),
+  )
+  check('scheduler rejects sub-second intervals', badInterval === 'E_SCHEDULE', String(badInterval))
+
   await calendarFrame.evaluate(() =>
     window.GF.scheduler.schedule({ kind: 'alarm', title: 'Persisted alarm', delayMs: 120000 }),
   )
@@ -544,6 +560,24 @@ try {
   const pausedStatus = await radioMediaFrame.evaluate(() => window.GF.media.list().then((sources) => sources[0]?.status))
   check('global media bar can pause playback', pausedStatus === 'paused', String(pausedStatus))
 
+  const badMedia = await radioMediaFrame.evaluate(() =>
+    window.GF.media
+      .play('bad', { url: 'javascript:alert(1)' })
+      .then(() => 'allowed')
+      .catch((error) => error.code),
+  )
+  check('media rejects non-audio URL schemes', badMedia === 'E_PARAM', String(badMedia))
+
+  const badRpc = await radioMediaFrame.evaluate(() =>
+    window.GF.ui.confirm(123).then(() => 'ok').catch((error) => error.code),
+  )
+  check('RPC rejects malformed params', badRpc === 'E_PARAM', String(badRpc))
+
+  const traversal = await radioMediaFrame.evaluate(() => window.GF.icons.url('../../package.json'))
+  check('icon URL rejects path traversal', traversal.startsWith('data:'), traversal)
+  const iconOk = await radioMediaFrame.evaluate(() => window.GF.icons.url('1f4dd'))
+  check('icon URL resolves a valid codepoint', iconOk.endsWith('/1F4DD.svg'), iconOk)
+
   // Arcade app: game catalog, canvas stage, keyboard pause, settings, lazy games
   await page.goto(BASE, { waitUntil: 'networkidle' })
   await page.waitForSelector('.app-card', { timeout: 15000 })
@@ -628,6 +662,22 @@ try {
     return { ok: canvas.width > 0 && painted > 2000, width: canvas.width, painted }
   })
   check('new arcade game starts and paints', newGameInfo.ok, JSON.stringify(newGameInfo))
+
+  const appUrls = page
+    .frames()
+    .map((frame) => frame.url())
+    .filter((url) => url.includes('/apps/'))
+  check(
+    'bridge token is stripped from app URLs',
+    appUrls.length > 0 && appUrls.every((url) => !url.includes('gf-token')),
+    appUrls.join(' | '),
+  )
+
+  const shellCsp = await page.evaluate(
+    () =>
+      document.querySelector('meta[http-equiv="Content-Security-Policy"]')?.getAttribute('content') ?? '',
+  )
+  check('production shell ships a CSP', /object-src 'none'/.test(shellCsp), shellCsp.slice(0, 48))
 
   check('no page/console errors', errors.length === 0, errors.slice(0, 3).join(' | '))
 } catch (error) {

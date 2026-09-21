@@ -12,6 +12,7 @@ const STORE = 'scheduler'
 const SAFETY_INTERVAL_MS = 30_000
 const MISSED_GRACE_MS = 60_000
 const MAX_TIMEOUT_MS = 2 ** 31 - 1
+const MAX_PENDING_PER_APP = 100
 
 interface ScheduleRecord {
   pk: string
@@ -76,6 +77,15 @@ export class Scheduler {
   }
 
   async schedule(appId: string, draft: ScheduleDraft): Promise<ScheduleItem> {
+    let pending = 0
+    for (const existing of this.items.values()) {
+      if (existing.appId === appId && existing.status === 'pending') pending += 1
+    }
+    if (pending >= MAX_PENDING_PER_APP) {
+      throw Object.assign(new Error(`Too many pending reminders (max ${MAX_PENDING_PER_APP})`), {
+        code: 'E_SCHEDULE',
+      })
+    }
     const now = Date.now()
     const item: ScheduleItem = {
       ...normalizeDraft(draft),

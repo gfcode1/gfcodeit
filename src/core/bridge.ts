@@ -100,6 +100,7 @@ export class BridgeHost {
     const welcome: WelcomeMessage = {
       t: 'gf:welcome',
       v: BRIDGE_PROTOCOL_VERSION,
+      token: this.options.token,
       theme: this.options.getTheme(),
       profile: this.options.getProfile(),
     }
@@ -165,6 +166,15 @@ export class BridgeHost {
   }
 }
 
+/** Removes `?gf-token=` once consumed so it cannot leak via referrers or history. */
+function stripTokenFromUrl(): void {
+  const url = new URL(window.location.href)
+  if (!url.searchParams.has('gf-token')) return
+  url.searchParams.delete('gf-token')
+  const next = `${url.pathname}${url.search}${url.hash}`
+  window.history.replaceState(null, '', next)
+}
+
 export interface ClientOptions {
   appId: string
   sdk: string
@@ -202,6 +212,10 @@ export class BridgeClient {
       }, RPC_TIMEOUT_MS)
 
       const onMessage = (event: MessageEvent) => {
+        // Only the shell (our parent) may drive the handshake. Without this a
+        // sibling same-origin iframe could post a welcome + port and hijack RPC.
+        if (event.source !== window.parent) return
+        if (event.origin !== window.location.origin) return
         const data = event.data as WelcomeMessage | { t: 'gf:reject'; code: string; message: string }
         if (!data || typeof data !== 'object') return
         if (data.t === 'gf:reject') {
@@ -210,6 +224,8 @@ export class BridgeClient {
           return
         }
         if (data.t !== 'gf:welcome') return
+        // The welcome must echo the token we sent in the hello.
+        if (data.token !== this.options.token) return
         const port = event.ports[0]
         if (!port) return
         cleanup()
@@ -217,6 +233,7 @@ export class BridgeClient {
         this.port.onmessage = (messageEvent) => this.receive(messageEvent.data as BridgeMessage)
         this.port.start()
         this.welcome = data
+        stripTokenFromUrl()
         resolve(data)
       }
 

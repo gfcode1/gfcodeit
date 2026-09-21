@@ -19,8 +19,6 @@ export type Permission =
   | 'theme.write'
   | 'notifications'
   | 'scheduler'
-  | 'clipboard'
-  | 'external'
   | 'media'
 
 export interface AppStorageConfig {

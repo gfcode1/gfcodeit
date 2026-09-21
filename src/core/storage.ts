@@ -35,6 +35,26 @@ export interface StorageOptions {
   getProfileId: () => string
 }
 
+export class StorageError extends Error {
+  readonly code: string
+  constructor(code: string, message: string) {
+    super(message)
+    this.name = 'StorageError'
+    this.code = code
+  }
+}
+
+function rethrowWrite(error: unknown): never {
+  const name = (error as { name?: string } | null)?.name
+  if (name === 'QuotaExceededError') {
+    throw new StorageError('E_QUOTA', 'Storage quota exceeded')
+  }
+  if (name === 'DataCloneError') {
+    throw new StorageError('E_CLONE', 'Value is not structured-cloneable')
+  }
+  throw error
+}
+
 const SHARED = '*'
 const META_KEY = 'meta'
 
@@ -106,16 +126,24 @@ export function createStorage(options: StorageOptions): StorageHandle {
 
   async function set<T>(key: string, value: T): Promise<void> {
     await init()
-    const { store, done } = await getStore(storeName, 'readwrite')
-    store.put({ pk: prefix() + key, value } satisfies KvRecord)
-    await done
+    try {
+      const { store, done } = await getStore(storeName, 'readwrite')
+      store.put({ pk: prefix() + key, value } satisfies KvRecord)
+      await done
+    } catch (error) {
+      rethrowWrite(error)
+    }
   }
 
   async function remove(key: string): Promise<void> {
     await init()
-    const { store, done } = await getStore(storeName, 'readwrite')
-    store.delete(prefix() + key)
-    await done
+    try {
+      const { store, done } = await getStore(storeName, 'readwrite')
+      store.delete(prefix() + key)
+      await done
+    } catch (error) {
+      rethrowWrite(error)
+    }
   }
 
   async function keys(): Promise<string[]> {

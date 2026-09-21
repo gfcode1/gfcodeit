@@ -54,6 +54,10 @@ export class AppHost {
     const iframe = document.createElement('iframe')
     iframe.className = 'app-frame'
     iframe.title = app.name
+    // Do not leak the frame URL (which carries the bridge token) as a referrer,
+    // and deny powerful features apps do not need (camera, mic, geolocation…).
+    iframe.referrerPolicy = 'no-referrer'
+    iframe.setAttribute('allow', 'clipboard-write; fullscreen; autoplay')
     iframe.src = `${BASE}apps/${app.id}/${app.entry}?gf-token=${token}`
     iframe.hidden = true
     this.iframe = iframe
