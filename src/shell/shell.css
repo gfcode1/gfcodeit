@@ -260,16 +260,33 @@
   gap: var(--gf-s5);
 }
 
-.launcher__controls {
+.launcher__search {
   display: flex;
-  flex-direction: column;
-  gap: var(--gf-s3);
+  align-items: center;
+  gap: var(--gf-s2);
+  width: 100%;
+  min-height: 44px;
+  padding: 0 var(--gf-s3);
+  border: var(--gf-border-w) solid var(--gf-ink);
+  background: var(--gf-surface);
+  color: var(--gf-muted);
+  font-family: var(--gf-font-mono);
+  font-size: var(--gf-fs-sm);
+  text-align: left;
+  cursor: pointer;
 }
 
-.launcher__chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--gf-s2);
+.launcher__search:hover {
+  background: var(--gf-ink);
+  color: var(--gf-paper);
+}
+
+.launcher__search .topbar__kbd {
+  margin-left: auto;
+}
+
+.launcher__search:hover .topbar__kbd {
+  color: var(--gf-paper);
 }
 
 .launcher__section {

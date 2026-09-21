@@ -363,6 +363,7 @@ function renderHome(): void {
       onOpen: (id) => navigate(`${APP_ROUTE_PREFIX}${id}`),
       onToggleFavorite: (id) => void handleToggleFavorite(id),
       onReorderFavorites: (ids) => void handleReorder(ids),
+      onSearch: () => openCommands(),
       getBadge: (id) => badges.get(id) ?? 0,
     }),
   )

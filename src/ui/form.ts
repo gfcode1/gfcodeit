@@ -50,6 +50,10 @@ export class GFInput extends GFElement {
     this.setAttribute('value', next)
   }
 
+  override focus(options?: FocusOptions): void {
+    this.query<HTMLInputElement>('input')?.focus(options)
+  }
+
   private sync(): void {
     const input = this.query<HTMLInputElement>('input')
     if (!input) return

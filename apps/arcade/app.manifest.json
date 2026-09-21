@@ -1,0 +1,13 @@
+{
+  "id": "arcade",
+  "name": "Arcade",
+  "description": "A growing cabinet of classic HTML5 games — Snake, Tetris, Breakout, Pong, 2048, Minesweeper, Simon, Flappy, Asteroids, Space Invaders, Memory, Whack-a-Mole, Lights Out, Connect Four, Tic-Tac-Toe, Frogger, Endless Runner and Lunar Lander.",
+  "icon": "1F579",
+  "color": "#ff4d00",
+  "category": "games",
+  "version": "1.0.0",
+  "sdk": "^1.0.0",
+  "entry": "index.html",
+  "permissions": ["storage", "profile", "ui.toast", "ui.confirm"],
+  "storage": { "scope": "profile", "schemaVersion": 1 }
+}

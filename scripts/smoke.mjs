@@ -158,6 +158,12 @@ try {
   check('command palette opens', true)
   await page.keyboard.press('Escape')
 
+  // Home search bar opens the command palette
+  await page.locator('.launcher__search').click()
+  await page.locator('.palette').waitFor()
+  check('home search bar opens command palette', true)
+  await page.keyboard.press('Escape')
+
   // Weather app: geocoding search + live forecast from Open-Meteo
   await page.goto(BASE, { waitUntil: 'networkidle' })
   await page.waitForSelector('.app-card', { timeout: 15000 })
@@ -537,6 +543,91 @@ try {
   await page.waitForTimeout(400)
   const pausedStatus = await radioMediaFrame.evaluate(() => window.GF.media.list().then((sources) => sources[0]?.status))
   check('global media bar can pause playback', pausedStatus === 'paused', String(pausedStatus))
+
+  // Arcade app: game catalog, canvas stage, keyboard pause, settings, lazy games
+  await page.goto(BASE, { waitUntil: 'networkidle' })
+  await page.waitForSelector('.app-card', { timeout: 15000 })
+  const arcadeCard = page.locator('.app-card').filter({ hasText: 'Arcade' }).first()
+  check('Arcade app discovered', (await arcadeCard.count()) > 0)
+  await arcadeCard.hover()
+  await arcadeCard.getByText('Open').click()
+  const ar = page.frameLocator('iframe.app-frame')
+  await ar.locator('.arcade-grid').waitFor({ timeout: 15000 })
+  const tileCount = await ar.locator('.arcade-tile').count()
+  check('arcade lists the game catalog', tileCount >= 8, `${tileCount} tile(s)`)
+
+  await ar.locator('.arcade-tile', { hasText: 'Snake' }).click()
+  await ar.locator('.arcade-canvas').waitFor({ timeout: 5000 })
+  await ar.locator('.arcade-overlay[data-state="ready"]').waitFor({ timeout: 5000 })
+  check('arcade mounts a ready overlay', true)
+  await ar.locator('.arcade-overlay gf-button', { hasText: 'Tap to start' }).click()
+  await ar.locator('.arcade-overlay').waitFor({ state: 'hidden', timeout: 5000 })
+  await page.waitForTimeout(400)
+
+  const arcadeFrame = page.frames().find((frame) => frame.url().includes('/apps/arcade/'))
+  const canvasInfo = await arcadeFrame.evaluate(() => {
+    const canvas = document.querySelector('canvas.arcade-canvas')
+    if (!canvas) return { ok: false }
+    const ctx = canvas.getContext('2d')
+    const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data
+    let painted = 0
+    for (let i = 3; i < pixels.length; i += 4) {
+      if (pixels[i] > 0) painted += 1
+      if (painted > 2000) break
+    }
+    return { ok: canvas.width > 0 && painted > 2000, width: canvas.width, painted }
+  })
+  check('arcade canvas renders pixels', canvasInfo.ok, JSON.stringify(canvasInfo))
+
+  const hudLine = ((await ar.locator('.arcade-hud__stat').first().textContent()) ?? '').trim()
+  check('arcade HUD shows a score line', /SCORE \d{5}/.test(hudLine), hudLine)
+
+  await page.keyboard.press('KeyP')
+  await ar.locator('.arcade-overlay[data-state="paused"]').waitFor({ timeout: 5000 })
+  check('arcade pauses with the keyboard', true)
+  await ar.locator('.arcade-overlay gf-button', { hasText: 'Resume' }).click()
+  await page.waitForTimeout(300)
+  check('arcade resumes', await ar.locator('.arcade-overlay').first().isHidden())
+
+  await ar.locator('.arcade-hud gf-button', { hasText: 'Menu' }).click()
+  const arcadeQuit = page.locator('gf-modal[open]', { hasText: 'Leave the current game?' })
+  await arcadeQuit.waitFor({ timeout: 5000 })
+  await arcadeQuit.locator('gf-button', { hasText: 'Confirm' }).click()
+  await ar.locator('.arcade-grid').waitFor({ timeout: 5000 })
+  check('arcade returns to the game menu', true)
+
+  await ar.locator('gf-page-header gf-button', { hasText: 'Settings' }).click()
+  await ar.locator('gf-modal[open]', { hasText: 'Arcade settings' }).waitFor({ timeout: 5000 })
+  await ar.locator('gf-modal[open] gf-switch').click()
+  await ar.locator('gf-modal[open] gf-button', { hasText: 'Close' }).click()
+  await ar.locator('gf-modal[open]').waitFor({ state: 'detached', timeout: 5000 })
+  check('arcade settings modal toggles sound', true)
+
+  await ar.locator('.arcade-tile', { hasText: '2048' }).click()
+  await ar.locator('.arcade-overlay[data-state="ready"]').waitFor({ timeout: 5000 })
+  check('arcade lazy-loads a second game', true)
+
+  // A newly added game must open, start and paint the canvas.
+  await ar.locator('.arcade-hud gf-button', { hasText: 'Menu' }).click()
+  await ar.locator('.arcade-grid').waitFor({ timeout: 5000 })
+  await ar.locator('.arcade-tile', { hasText: 'Lights Out' }).click()
+  await ar.locator('.arcade-overlay[data-state="ready"]').waitFor({ timeout: 5000 })
+  await ar.locator('.arcade-overlay gf-button', { hasText: 'Tap to start' }).click()
+  await ar.locator('.arcade-overlay').waitFor({ state: 'hidden', timeout: 5000 })
+  await page.waitForTimeout(300)
+  const newGameInfo = await arcadeFrame.evaluate(() => {
+    const canvas = document.querySelector('canvas.arcade-canvas')
+    if (!canvas) return { ok: false }
+    const ctx = canvas.getContext('2d')
+    const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data
+    let painted = 0
+    for (let i = 3; i < pixels.length; i += 4) {
+      if (pixels[i] > 0) painted += 1
+      if (painted > 2000) break
+    }
+    return { ok: canvas.width > 0 && painted > 2000, width: canvas.width, painted }
+  })
+  check('new arcade game starts and paints', newGameInfo.ok, JSON.stringify(newGameInfo))
 
   check('no page/console errors', errors.length === 0, errors.slice(0, 3).join(' | '))
 } catch (error) {

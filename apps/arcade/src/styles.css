@@ -1,0 +1,295 @@
+:root {
+  font-family: var(--gf-font-sans);
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--gf-paper);
+}
+
+#app {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.arcade-menu {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gf-s4);
+  padding: var(--gf-s4);
+  overflow-y: auto;
+}
+
+.arcade-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(136px, 1fr));
+  gap: var(--gf-s3);
+}
+
+.arcade-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--gf-s2);
+  padding: var(--gf-s4) var(--gf-s3);
+  background: var(--gf-surface);
+  color: var(--gf-ink);
+  border: var(--gf-border-w) solid var(--gf-ink);
+  border-radius: var(--gf-radius);
+  box-shadow: var(--gf-shadow-2);
+  font: inherit;
+  cursor: pointer;
+  transition: background var(--gf-dur-fast) var(--gf-ease), color var(--gf-dur-fast) var(--gf-ease),
+    transform var(--gf-dur-fast) var(--gf-ease), box-shadow var(--gf-dur-fast) var(--gf-ease);
+}
+
+.arcade-tile:hover {
+  background: var(--gf-ink);
+  color: var(--gf-paper);
+}
+
+.arcade-tile:active {
+  transform: translate(4px, 4px);
+  box-shadow: 0 0 0 var(--gf-ink);
+}
+
+.arcade-tile__name {
+  font-family: var(--gf-font-mono);
+  font-size: var(--gf-fs-sm);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.arcade-tile__best {
+  font-family: var(--gf-font-mono);
+  font-size: var(--gf-fs-xs);
+  color: var(--gf-muted);
+}
+
+.arcade-tile:hover .arcade-tile__best {
+  color: inherit;
+  opacity: 0.75;
+}
+
+.arcade-game {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.arcade-game[hidden],
+.arcade-menu[hidden] {
+  display: none;
+}
+
+.arcade-hud {
+  display: flex;
+  align-items: center;
+  gap: var(--gf-s2);
+  padding: var(--gf-s2) var(--gf-s3);
+  border-bottom: var(--gf-border-w) solid var(--gf-ink);
+  background: var(--gf-surface);
+}
+
+.arcade-hud__title {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--gf-s1);
+  font-family: var(--gf-font-mono);
+  font-size: var(--gf-fs-sm);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.arcade-hud__stat {
+  font-family: var(--gf-font-mono);
+  font-size: var(--gf-fs-xs);
+  color: var(--gf-muted);
+  white-space: nowrap;
+}
+
+.arcade-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0b0e14;
+  overflow: hidden;
+}
+
+.arcade-canvas {
+  display: block;
+  touch-action: none;
+  background: #0b0e14;
+}
+
+.arcade-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--gf-s4);
+  background: rgba(8, 10, 15, 0.74);
+  text-align: center;
+}
+
+.arcade-overlay[hidden] {
+  display: none;
+}
+
+.arcade-overlay__box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--gf-s3);
+  max-width: 320px;
+  color: #f1f3f5;
+}
+
+.arcade-overlay__title {
+  margin: 0;
+  font-family: var(--gf-font-mono);
+  font-size: var(--gf-fs-lg);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.arcade-overlay__text {
+  margin: 0;
+  font-size: var(--gf-fs-sm);
+  color: rgba(241, 243, 245, 0.76);
+}
+
+.arcade-overlay__record {
+  color: var(--gf-accent);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.arcade-overlay__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--gf-s2);
+}
+
+.arcade-touch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gf-s3);
+  padding: var(--gf-s3);
+  min-height: 96px;
+  background: var(--gf-paper);
+}
+
+.arcade-touch:empty {
+  display: none;
+}
+
+.arcade-dpad {
+  display: grid;
+  grid-template-columns: repeat(3, 48px);
+  grid-template-rows: repeat(3, 48px);
+  gap: 4px;
+}
+
+.arcade-pad,
+.arcade-action {
+  font: inherit;
+  font-family: var(--gf-font-mono);
+  color: #e9ecef;
+  background: #1f2533;
+  border: var(--gf-border-w) solid #394152;
+  border-radius: var(--gf-radius);
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+}
+
+.arcade-pad:active,
+.arcade-action:active {
+  background: var(--gf-accent);
+  color: var(--gf-accent-ink);
+  border-color: var(--gf-ink);
+}
+
+.arcade-pad {
+  font-size: var(--gf-fs-md);
+}
+
+.arcade-pad--up {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.arcade-pad--left {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.arcade-pad--right {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+.arcade-pad--down {
+  grid-column: 2;
+  grid-row: 3;
+}
+
+.arcade-buttons {
+  display: flex;
+  gap: var(--gf-s2);
+  margin-left: auto;
+}
+
+.arcade-action {
+  min-width: 76px;
+  min-height: 56px;
+  padding: 0 var(--gf-s3);
+  font-size: var(--gf-fs-sm);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.arcade-settings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gf-s3);
+}
+
+.arcade-setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gf-s3);
+}
+
+.arcade-settings__info {
+  margin: 0;
+  color: var(--gf-muted);
+  font-family: var(--gf-font-mono);
+  font-size: var(--gf-fs-xs);
+}
+
+@media (max-width: 400px) {
+  .arcade-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
