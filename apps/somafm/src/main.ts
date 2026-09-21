@@ -72,7 +72,6 @@ async function start(): Promise<void> {
   let song: Song | null = null
   let lastError: string | null = null
   let pollTimer: number | null = null
-  let sleepTimer: number | null = null
 
   // ---- shell --------------------------------------------------------------
   const header = el('gf-page-header')
@@ -147,7 +146,7 @@ async function start(): Promise<void> {
 
   root.append(header, toolbar, viewBar, content, nowPlaying)
 
-  const player = new RadioPlayer((stream: StreamVariant) => resolveStreamUrls(gf.cache, stream.playlistUrl), {
+  const player = new RadioPlayer(gf, (stream: StreamVariant) => resolveStreamUrls(gf.cache, stream.playlistUrl), {
     onState: (state) => {
       renderNowPlaying(state)
       syncPolling(state)
@@ -472,19 +471,12 @@ async function start(): Promise<void> {
 
   sleepSelect.addEventListener('gf-change', (event) => {
     const minutes = Number((event as CustomEvent<{ value: string }>).detail.value)
-    if (sleepTimer !== null) {
-      window.clearTimeout(sleepTimer)
-      sleepTimer = null
-    }
-    if (minutes > 0) {
-      sleepTimer = window.setTimeout(() => {
-        player.stop()
-        sleepTimer = null
-        gf.ui.toast('Sleep timer — playback stopped', { variant: 'ok' })
-      }, minutes * 60000)
-      gf.ui.toast(`Sleep timer set for ${minutes} minutes`)
-    }
+    void gf.media.setSleepTimer(minutes > 0 ? minutes * 60000 : null)
+    if (minutes > 0) gf.ui.toast(`Sleep timer set for ${minutes} minutes`)
   })
+
+  // The shell owns playback; only a standalone document tears it down.
+  window.addEventListener('pagehide', () => player.dispose())
 
   playButton.addEventListener('click', () => player.toggle())
   historyButton.addEventListener('click', () => {
@@ -531,6 +523,7 @@ async function start(): Promise<void> {
   })
 
   await loadChannels()
+  void player.refresh()
   await gf.storage.init()
 }
 

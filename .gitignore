@@ -3,6 +3,7 @@ dist/
 public/framework/
 public/openmoji/
 public/icons/*.png
+public/rss-catalog.json
 *.log
 .DS_Store
 .vite/

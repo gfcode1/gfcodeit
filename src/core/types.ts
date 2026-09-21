@@ -21,6 +21,7 @@ export type Permission =
   | 'scheduler'
   | 'clipboard'
   | 'external'
+  | 'media'
 
 export interface AppStorageConfig {
   scope?: StorageScope
@@ -117,6 +118,50 @@ export interface ScheduleDraft {
   snoozeMs?: number
 }
 
+export type MediaStatus = 'idle' | 'loading' | 'playing' | 'paused' | 'error'
+
+/** A media source requested by an app; playback is owned by the shell. */
+export interface MediaSourceInit {
+  url: string
+  /** Request CORS for the stream (most radio streams must NOT set this). */
+  crossOrigin?: boolean
+  loop?: boolean
+  /** Source volume 0..1, multiplied by the session master volume. */
+  volume?: number
+  title?: string
+  artist?: string
+  album?: string
+  artwork?: string
+}
+
+export interface MediaSourceState {
+  id: string
+  status: MediaStatus
+  volume: number
+  loop: boolean
+  crossOrigin: boolean
+  error?: string
+  title?: string
+  artist?: string
+  album?: string
+  artwork?: string
+}
+
+/** Snapshot of the audio owned by one app. */
+export interface MediaState {
+  owner: string | null
+  status: MediaStatus
+  paused: boolean
+  master: number
+  sources: MediaSourceState[]
+}
+
+export type MediaAction = 'play' | 'pause' | 'stop' | 'next' | 'previous'
+
+export interface MediaCommand {
+  action: MediaAction
+}
+
 export type BridgeMethod =
   | 'shell.navigate'
   | 'shell.home'
@@ -131,3 +176,15 @@ export type BridgeMethod =
   | 'scheduler.snooze'
   | 'scheduler.list'
   | 'scheduler.clear'
+  | 'media.play'
+  | 'media.load'
+  | 'media.pause'
+  | 'media.resume'
+  | 'media.remove'
+  | 'media.clear'
+  | 'media.setVolume'
+  | 'media.setMasterVolume'
+  | 'media.setPaused'
+  | 'media.setMetadata'
+  | 'media.list'
+  | 'media.setSleepTimer'

@@ -56,7 +56,7 @@ framework/index.ts         # shared runtime entry (builds to public/framework/v1
 types/gf.d.ts              # global types for app authors
 scripts/                   # build, validation, scaffolding, smoke test
 templates/app/             # scaffold used by `pnpm new-app`
-public/                    # generated: framework/, openmoji/ (gitignored)
+public/                    # generated: framework/, openmoji/, rss-catalog.json (gitignored)
 ```
 
 ## Adding an app
@@ -89,12 +89,21 @@ Bundled example apps:
 - **Radio** — search and stream thousands of internet stations from
   [Radio Browser](https://www.radio-browser.info/) by name, tag and country,
   with a top-charts view, favorites, recent history, a full player (media
-  session, sleep timer), click tracking and station voting. HLS-only and
-  insecure (HTTP) streams are filtered out for reliable playback.
+  session, sleep timer), click tracking and station voting.   HLS-only and
+  insecure (HTTP) streams are filtered out for reliable playback. Playback is
+  owned by the shell media hub, so it continues while you use other apps.
 - **Calculator** — basic arithmetic with parentheses, powers and percentages,
   a memory register (M+/M−/MR/MC) and a copyable result. Calculations are kept
   in a reusable history, persisted per profile; the whole thing is keyboard
   friendly.
+- **News** — RSS/Atom reader. An in-app browser of the
+  [awesome-rss-feeds](https://github.com/plenaryapp/awesome-rss-feeds) catalog
+  (categories + countries) plus manual feeds, an aggregated "Latest" view,
+  in-app reader with sanitized article content, saved articles, read/unread
+  tracking with an unread badge, and OPML import/export. Feeds are fetched
+  through a configurable public proxy — [rss2json](https://rss2json.com/) by
+  default (reliable CORS, free-tier rate limit), with raw CORS proxies
+  available in Settings — since feeds themselves do not send CORS headers.
 
 ### The manifest
 
@@ -137,7 +146,7 @@ gf.on('themeChanged', (theme) => console.log('theme', theme))
 `GF` surface: `version`, `appId`, `manifest`, `permissions`, `profile`,
 `storage` (`get/set/delete/keys/clear/onUpgrade/scope`), `cache`, `theme`, `ui`
 (`toast/modal/confirm/badge`), `icons`, `shell` (`navigate/home`), `scheduler`,
-`bus`, `on`.
+`media`, `bus`, `on`.
 
 Apps also load `tokens.css` and the `<gf-*>` web components from the runtime, so
 they look consistent with the shell while remaining standalone-capable.
@@ -201,6 +210,49 @@ starts after the first user interaction (autoplay policy). The Activity center
 (`#/activity`, bell in the top bar) lists and manages everything. Apps opened
 standalone use an in-memory best-effort scheduler.
 
+### Audio (centralized media hub)
+
+Audio playback is owned by the **shell**, not by apps. An app hands a stream or
+a set of loops to `gf.media`; the shell keeps the `<audio>` elements alive, so
+sound keeps playing while the app is backgrounded or its iframe is unmounted
+(e.g. listening to Radio while working in Todo). The OS media keys /
+lock-screen controls are wired to the shell too, so they keep working across
+apps. Declare the `media` permission in the manifest.
+
+```ts
+// A single stream (radio). Claims audio for this app.
+await gf.media.play('stream', {
+  url: 'https://…/stream.mp3',
+  title: 'Nightride FM',
+  artist: 'Synthwave',
+  artwork: 'https://…/cover.jpg',
+})
+
+// Layers (ambient mixer) mix within the app.
+await gf.media.play('rain', { url, loop: true, volume: 0.7 })
+await gf.media.setMasterVolume(0.8)
+await gf.media.setPaused(false)
+
+gf.media.onState((state) => console.log(state.sources)) // UI sync
+gf.media.onCommand(({ action }) => {                     // media keys / bar
+  if (action === 'next') nextStation()
+})
+await gf.media.setSleepTimer(30 * 60_000)                // survives app switches
+await gf.media.clear()                                   // drop this app's audio
+```
+
+- **Exclusive across apps**: starting audio in one app stops any other app's
+  audio and notifies it (its state goes empty). Within one app, sources mix.
+- **Global mini-player**: a persistent bar above the bottom nav (visible on
+  every screen, including inside other apps) shows what is playing and offers
+  play/pause, volume, stop and a shortcut to the owning app.
+- **Volume** is per-source plus a per-app master; fades are available by passing
+  `fadeMs` to `setVolume`/`setMasterVolume`/`remove`.
+- **Sleep timer** lives in the shell, so it still fires after you leave the app.
+- Switching profiles stops all audio (apps are profile-scoped).
+- Standalone (`pnpm dev:app`, no shell) uses an in-memory hub in the document,
+  so apps behave the same outside the shell.
+
 ## Architecture
 
 ```
@@ -246,7 +298,10 @@ Deployment is automated by `.github/workflows/deploy.yml`, which builds on CI
 (`pnpm install --frozen-lockfile && pnpm build`) and publishes `dist/` as a
 Pages artifact on every push to `main` (or via a manual `workflow_dispatch`).
 Nothing built is committed — `dist/` and the generated `public/` trees stay
-gitignored and are produced in the runner.
+gitignored and are produced in the runner. The News catalog
+(`public/rss-catalog.json`) is generated by `pnpm build:rss-catalog`, which
+downloads the OPML files from the awesome-rss-feeds repository; when the network
+is unavailable an existing catalog is kept.
 
 One-time setup: **Settings → Pages → Build and deployment → Source = "GitHub
 Actions"**. The site is served at `https://gfcode1.github.io/gfcodeit/` — the
@@ -289,6 +344,9 @@ PWA icon PNGs are generated from the brutalist logo by `pnpm build:pwa-icons`
 - **M3 — done**: full PWA — service worker with precache + runtime caching,
   generated icons (192/512/maskable/apple), installable manifest, offline shell
   and apps, update prompt and offline indicator.
+- **M4 — done**: centralized audio — shell-owned media hub with a `media`
+  permission, cross-app exclusive playback, a global mini-player and shell-side
+  sleep timers; Radio, SomaFM and Soundscape run on it.
 
 ## Verification
 

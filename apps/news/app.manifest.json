@@ -1,0 +1,13 @@
+{
+  "id": "news",
+  "name": "News",
+  "description": "Read RSS feeds: browse the awesome-rss-feeds catalog, add your own, save articles.",
+  "icon": "1F4F0",
+  "color": "#c2410c",
+  "category": "media",
+  "version": "1.0.0",
+  "sdk": "^1.0.0",
+  "entry": "index.html",
+  "permissions": ["storage", "profile", "ui.toast", "ui.confirm", "notifications"],
+  "storage": { "scope": "profile", "schemaVersion": 1 }
+}

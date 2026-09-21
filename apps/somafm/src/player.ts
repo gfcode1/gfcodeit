@@ -1,3 +1,5 @@
+import type { GFApi } from '../../../src/core/sdk'
+import type { MediaSourceInit, MediaState } from '../../../src/core/types'
 import type { Channel, Song, StreamVariant } from './somafm'
 
 export type PlayerStatus = 'idle' | 'loading' | 'playing' | 'paused' | 'error'
@@ -14,10 +16,15 @@ export interface PlayerHandlers {
   onTrackChange(direction: 'next' | 'previous'): void
 }
 
+const SOURCE_ID = 'stream'
 const STALL_MS = 15000
 
+/**
+ * SomaFM player driving the framework media hub. Playback lives in the shell so
+ * the station keeps playing while the app is backgrounded or unmounted.
+ */
 export class RadioPlayer {
-  private readonly audio = new Audio()
+  private readonly gf: GFApi
   private readonly resolveStream: (stream: StreamVariant) => Promise<string[]>
   private readonly handlers: PlayerHandlers
   private channel: Channel | null = null
@@ -31,15 +38,21 @@ export class RadioPlayer {
   private generation = 0
   private stallTimer: number | null = null
   private level = 1
+  private readonly unsubscribe: () => void
 
-  constructor(resolveStream: (stream: StreamVariant) => Promise<string[]>, handlers: PlayerHandlers) {
+  constructor(
+    gf: GFApi,
+    resolveStream: (stream: StreamVariant) => Promise<string[]>,
+    handlers: PlayerHandlers,
+  ) {
+    this.gf = gf
     this.resolveStream = resolveStream
     this.handlers = handlers
-    this.audio.preload = 'none'
-    this.audio.crossOrigin = 'anonymous'
-    this.audio.volume = this.level
-    this.bind()
-    this.setupMediaSession()
+    this.unsubscribe = gf.media.onState((state) => this.onMediaState(state))
+    gf.media.onCommand((command) => {
+      if (command.action === 'next') this.handlers.onTrackChange('next')
+      else if (command.action === 'previous') this.handlers.onTrackChange('previous')
+    })
   }
 
   get state(): PlayerState {
@@ -54,17 +67,38 @@ export class RadioPlayer {
     return this.level
   }
 
+  /** Re-attaches to a channel the shell is still playing (on app remount). */
+  async refresh(): Promise<void> {
+    let sources
+    try {
+      sources = await this.gf.media.list()
+    } catch {
+      return
+    }
+    const source = sources.find((item) => item.id === SOURCE_ID)
+    if (!source) return
+    if (source.status === 'playing' || source.status === 'loading') {
+      this.armStall()
+      this.setStatus(source.status)
+    } else if (source.status === 'paused') {
+      this.setStatus('paused')
+    } else if (source.status === 'error') {
+      this.error = source.error ?? 'Stream unavailable'
+      this.setStatus('error')
+    }
+  }
+
   setVolume(value: number): void {
     this.level = Math.min(1, Math.max(0, value))
-    this.audio.volume = this.level
+    void this.gf.media.setVolume(SOURCE_ID, this.level)
   }
 
   setSong(song: Song | null): void {
     this.song = song
-    this.updateMediaSession()
+    void this.gf.media.setMetadata(SOURCE_ID, this.metadata())
   }
 
-  /** Sets the channel without starting playback (used to restore the last channel). */
+  /** Sets the channel without starting playback (used to restore the last one). */
   load(channel: Channel, stream: StreamVariant): void {
     this.generation += 1
     this.channel = channel
@@ -75,8 +109,6 @@ export class RadioPlayer {
     this.retried = false
     this.error = null
     this.clearStall()
-    this.audio.removeAttribute('src')
-    this.audio.load()
     this.setStatus('paused')
   }
 
@@ -109,53 +141,62 @@ export class RadioPlayer {
   toggle(): void {
     if (this.status === 'playing' || this.status === 'loading') {
       this.clearStall()
-      this.audio.pause()
-      this.setStatus('paused')
+      void this.gf.media.pause(SOURCE_ID)
       return
     }
     if (!this.channel || !this.stream) return
-    if (this.audio.src && this.mirrors.length > 0) {
-      this.generation += 1
-      const gen = this.generation
-      this.setStatus('loading')
-      this.armStall()
-      this.audio.play().catch((error: unknown) => {
-        if (gen !== this.generation) return
-        if ((error as Error).name === 'NotAllowedError') this.setStatus('paused')
-        else void this.nextMirror('Playback failed', gen)
-      })
-      return
-    }
     void this.play(this.channel, this.stream)
   }
 
   stop(): void {
     this.generation += 1
     this.clearStall()
-    this.audio.pause()
-    this.audio.removeAttribute('src')
-    this.audio.load()
-    this.mirrors = []
-    this.mirrorIndex = 0
+    void this.gf.media.remove(SOURCE_ID)
     this.setStatus('idle')
   }
 
-  private bind(): void {
-    this.audio.addEventListener('playing', () => {
+  /** Drops listeners; standalone playback is cleared, shell playback is kept. */
+  dispose(): void {
+    this.clearStall()
+    this.unsubscribe()
+    if (!this.gf.embedded) void this.gf.media.clear()
+  }
+
+  private metadata(): Partial<MediaSourceInit> {
+    const channel = this.channel
+    if (!channel) return {}
+    const song = this.song
+    return {
+      title: song?.title || channel.title,
+      artist: song?.artist || (channel.dj ? `DJ ${channel.dj}` : 'SomaFM'),
+      album: song?.album || channel.description,
+      artwork: channel.xlImage || undefined,
+    }
+  }
+
+  private initFor(url: string): MediaSourceInit {
+    return { url, crossOrigin: true, volume: this.level, ...this.metadata() }
+  }
+
+  private onMediaState(state: MediaState): void {
+    const source = state.sources.find((item) => item.id === SOURCE_ID)
+    if (!source) {
+      if (this.status !== 'idle') this.setStatus('idle')
+      return
+    }
+    if (source.status === 'loading') {
+      this.armStall()
+      this.setStatus('loading')
+    } else if (source.status === 'playing') {
       this.clearStall()
       this.setStatus('playing')
-    })
-    this.audio.addEventListener('canplay', () => this.clearStall())
-    this.audio.addEventListener('pause', () => {
-      if (this.status === 'playing') this.setStatus('paused')
-    })
-    this.audio.addEventListener('stalled', () => this.armStall())
-    this.audio.addEventListener('waiting', () => this.armStall())
-    this.audio.addEventListener('error', () => {
-      if (this.status !== 'playing' && this.status !== 'loading') return
-      if (!this.audio.src) return
-      void this.nextMirror('Stream unavailable')
-    })
+    } else if (source.status === 'paused') {
+      this.clearStall()
+      this.setStatus('paused')
+    } else if (source.status === 'error') {
+      this.clearStall()
+      void this.nextMirror(source.error ?? 'Stream unavailable')
+    }
   }
 
   private async playCurrent(gen: number): Promise<void> {
@@ -164,23 +205,11 @@ export class RadioPlayer {
       this.fail('Stream unavailable')
       return
     }
-    this.audio.src = url
-    this.audio.load()
-    this.armStall()
-    try {
-      await this.audio.play()
-    } catch (error) {
-      if (gen !== this.generation) return
-      if ((error as Error).name === 'NotAllowedError') {
-        this.setStatus('paused')
-        return
-      }
-      await this.nextMirror('Playback failed', gen)
-    }
+    if (gen !== this.generation) return
+    await this.gf.media.play(SOURCE_ID, this.initFor(url))
   }
 
-  private async nextMirror(reason: string, gen: number = this.generation): Promise<void> {
-    if (gen !== this.generation) return
+  private async nextMirror(reason: string): Promise<void> {
     this.clearStall()
     if (this.mirrors.length === 0) {
       this.fail(reason)
@@ -195,6 +224,8 @@ export class RadioPlayer {
       this.fail(reason)
       return
     }
+    this.generation += 1
+    const gen = this.generation
     this.setStatus('loading')
     await this.playCurrent(gen)
   }
@@ -215,45 +246,11 @@ export class RadioPlayer {
 
   private setStatus(status: PlayerStatus): void {
     this.status = status
-    this.updateMediaSession()
     this.handlers.onState(this.state)
   }
 
   private fail(message: string): void {
     this.error = message
     this.setStatus('error')
-  }
-
-  private setupMediaSession(): void {
-    if (!('mediaSession' in navigator)) return
-    try {
-      navigator.mediaSession.setActionHandler('play', () => this.toggle())
-      navigator.mediaSession.setActionHandler('pause', () => this.toggle())
-      navigator.mediaSession.setActionHandler('stop', () => this.stop())
-      navigator.mediaSession.setActionHandler('nexttrack', () => this.handlers.onTrackChange('next'))
-      navigator.mediaSession.setActionHandler('previoustrack', () =>
-        this.handlers.onTrackChange('previous'),
-      )
-    } catch {
-      // Media Session is unavailable in this context — playback still works.
-    }
-  }
-
-  private updateMediaSession(): void {
-    if (!('mediaSession' in navigator) || typeof MediaMetadata === 'undefined') return
-    const channel = this.channel
-    if (!channel) return
-    const song = this.song
-    try {
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title: song?.title || channel.title,
-        artist: song?.artist || (channel.dj ? `DJ ${channel.dj}` : 'SomaFM'),
-        album: song?.album || channel.description,
-        artwork: channel.xlImage ? [{ src: channel.xlImage, sizes: '512x512' }] : [],
-      })
-      navigator.mediaSession.playbackState = this.status === 'playing' ? 'playing' : 'paused'
-    } catch {
-      // Ignore metadata failures.
-    }
   }
 }

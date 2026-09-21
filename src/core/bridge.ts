@@ -26,6 +26,18 @@ const RPC_PERMISSIONS: Partial<Record<BridgeMethod, Permission>> = {
   'scheduler.snooze': 'scheduler',
   'scheduler.list': 'scheduler',
   'scheduler.clear': 'scheduler',
+  'media.play': 'media',
+  'media.load': 'media',
+  'media.pause': 'media',
+  'media.resume': 'media',
+  'media.remove': 'media',
+  'media.clear': 'media',
+  'media.setVolume': 'media',
+  'media.setMasterVolume': 'media',
+  'media.setPaused': 'media',
+  'media.setMetadata': 'media',
+  'media.list': 'media',
+  'media.setSleepTimer': 'media',
 }
 
 export interface ThemeState {

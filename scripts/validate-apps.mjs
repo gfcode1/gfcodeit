@@ -18,6 +18,7 @@ const PERMISSIONS = [
   'scheduler',
   'clipboard',
   'external',
+  'media',
 ]
 
 const errors = []

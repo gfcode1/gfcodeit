@@ -11,7 +11,8 @@ Node 20+, pnpm 10+. No git repo is checked in here.
 
 `pnpm install` then `pnpm dev`. Fresh clones need a build first: `public/framework/`,
 `public/openmoji/`, `public/icons/*.png` are **generated and gitignored** (as is `dist/`).
-Never edit or commit the generated trees.
+Never edit or commit the generated trees. `public/rss-catalog.json` (the News feed catalog,
+built by `pnpm build:rss-catalog`) is generated the same way and also gitignored.
 
 ## Commands
 
@@ -69,10 +70,20 @@ run `pnpm build:framework` manually first.
   `dist/apps/<id>/`.
 - `permissions` are enforced in `src/core/sdk.ts` and re-checked by the shell for every
   bridged call; allowed values live in `scripts/validate-apps.mjs`. Without the declared
-  permission, `ui.confirm`, `shell.*`, `scheduler.*`, `theme.set`, `profile.list/update`
-  throw `PermissionDeniedError`, while `ui.toast`/`ui.modal` fall back locally and
-  `ui.badge` is a silent no-op. `<gf-modal>` etc. are plain web components needing no
-  permission — don't confuse them with the bridged `gf.ui.modal`.
+  permission, `ui.confirm`, `shell.*`, `scheduler.*`, `media.*`, `theme.set`,
+  `profile.list/update` throw `PermissionDeniedError`, while `ui.toast`/`ui.modal` fall back
+  locally and `ui.badge` is a silent no-op. `<gf-modal>` etc. are plain web components
+  needing no permission — don't confuse them with the bridged `gf.ui.modal`.
+
+## Audio
+
+Playback is centralized in the shell (`src/core/media.ts` — `createMediaHub`); apps drive
+it through the bridged `gf.media` API and must **not** keep their own long-lived `Audio`
+elements when embedded. The hub keeps audio alive after the iframe is unmounted, is
+exclusive across apps (starting audio in one stops the others), and backs a global
+mini-player (`src/shell/media-bar.ts`). `media:state`/`media:command` events flow
+shell→app; `src/core/sdk.ts` falls back to a document-local hub when standalone.
+`installAudioUnlock` still covers alarm audio.
 
 ## UI components
 

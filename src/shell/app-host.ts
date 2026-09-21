@@ -153,6 +153,14 @@ export class AppHost {
     this.bridge?.emitEvent('scheduler:fired', item)
   }
 
+  notifyMedia(state: unknown): void {
+    this.bridge?.emitEvent('media:state', state)
+  }
+
+  emitMediaCommand(command: unknown): void {
+    this.bridge?.emitEvent('media:command', command)
+  }
+
   unmount(): void {
     if (this.hideTimer) {
       window.clearTimeout(this.hideTimer)

@@ -80,7 +80,6 @@ async function start(): Promise<void> {
   let loading = true
   let error: string | null = null
   let searchTimer: number | null = null
-  let sleepTimer: number | null = null
   let searchController: AbortController | null = null
 
   // ---- shell --------------------------------------------------------------
@@ -153,7 +152,7 @@ async function start(): Promise<void> {
   root.append(header, toolbar, viewBar, content, nowPlaying)
 
   let lastError: string | null = null
-  const player = new RadioPlayer({
+  const player = new RadioPlayer(gf, {
     onState: (state) => {
       renderNowPlaying(state)
       if (state.error && state.error !== lastError) gf.ui.toast(state.error, { variant: 'danger' })
@@ -163,6 +162,7 @@ async function start(): Promise<void> {
   })
   player.setVolume(volumeLevel)
   if (lastStation) player.load(lastStation)
+  void player.refresh()
 
   // ---- data ---------------------------------------------------------------
   function currentList(): Station[] {
@@ -542,20 +542,12 @@ async function start(): Promise<void> {
 
   sleepSelect.addEventListener('gf-change', (event) => {
     const minutes = Number((event as CustomEvent<{ value: string }>).detail.value)
-    if (sleepTimer !== null) {
-      window.clearTimeout(sleepTimer)
-      sleepTimer = null
-    }
-    if (minutes > 0) {
-      sleepTimer = window.setTimeout(() => {
-        player.stop()
-        sleepTimer = null
-        sleepSelect.setAttribute('value', '0')
-        gf.ui.toast('Sleep timer — playback stopped', { variant: 'ok' })
-      }, minutes * 60000)
-      gf.ui.toast(`Sleep timer set for ${minutes} minutes`)
-    }
+    void gf.media.setSleepTimer(minutes > 0 ? minutes * 60000 : null)
+    if (minutes > 0) gf.ui.toast(`Sleep timer set for ${minutes} minutes`)
   })
+
+  // The shell owns playback; only a standalone document tears it down.
+  window.addEventListener('pagehide', () => player.dispose())
 
   document.addEventListener('keydown', (event) => {
     const target = event.target as HTMLElement | null

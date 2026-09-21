@@ -1,5 +1,6 @@
 import { createStorage, type StorageHandle, type UpgradeFn } from './storage'
 import { createCache, type GFCacheApi } from './cache'
+import { createMediaHub, type MediaHub } from './media'
 import { BridgeClient } from './bridge'
 import { BridgeError, FRAMEWORK_SDK_VERSION } from './bridge-protocol'
 import { bus } from './bus'
@@ -8,7 +9,19 @@ import { colorIconUrl, iconUrl, loadIconIndex, setAssetBase as setIconsBase, typ
 import { getCurrentProfile, listProfiles, updateProfile } from './profile'
 import { createLocalScheduler } from './local-scheduler'
 import { toast, type ToastOptions } from '../ui/overlay'
-import type { AppManifest, Permission, Profile, ScheduleDraft, ScheduleItem, StorageScope, ThemeMode } from './types'
+import type {
+  AppManifest,
+  MediaCommand,
+  MediaSourceInit,
+  MediaSourceState,
+  MediaState,
+  Permission,
+  Profile,
+  ScheduleDraft,
+  ScheduleItem,
+  StorageScope,
+  ThemeMode,
+} from './types'
 
 export class PermissionDeniedError extends Error {
   readonly code = 'E_PERMISSION'
@@ -30,6 +43,28 @@ export interface GFStorageApi {
   onUpgrade(fn: UpgradeFn, scope?: StorageScope): void
   init: StorageHandle['init']
   scope(scope: StorageScope): StorageHandle
+}
+
+export interface GFMediaApi {
+  /** Add or replace a source and start playing it (claims audio for this app). */
+  play(id: string, source: MediaSourceInit): Promise<MediaSourceState>
+  /** Add or replace a source without playing it. */
+  load(id: string, source: MediaSourceInit): Promise<MediaSourceState>
+  pause(id?: string): Promise<void>
+  resume(id?: string): Promise<void>
+  remove(id: string, fadeMs?: number): Promise<void>
+  /** Remove every source owned by this app. */
+  clear(): Promise<void>
+  setVolume(id: string, volume: number, fadeMs?: number): Promise<void>
+  setMasterVolume(volume: number, fadeMs?: number): Promise<void>
+  setPaused(paused: boolean): Promise<void>
+  setMetadata(id: string, meta: Partial<MediaSourceInit>): Promise<void>
+  list(): Promise<MediaSourceState[]>
+  setSleepTimer(ms: number | null): Promise<void>
+  /** Fires whenever this app's media state changes (or it loses audio). */
+  onState(handler: (state: MediaState) => void): () => void
+  /** Media Session / global-player transport commands addressed to this app. */
+  onCommand(handler: (command: MediaCommand) => void): () => void
 }
 
 export interface GFApi {
@@ -65,6 +100,7 @@ export interface GFApi {
     navigate(target: string): void
     home(): void
   }
+  media: GFMediaApi
   scheduler: {
     schedule(draft: ScheduleDraft): Promise<ScheduleItem>
     cancel(id: string): Promise<boolean>
@@ -136,6 +172,22 @@ export async function initSDK(options: InitOptions = {}): Promise<GFApi> {
   // Shared scope so public API responses are reused across profiles; without
   // the storage permission the cache degrades to memory-only.
   const cache = createCache(permissions.has('storage') ? { storage: handleFor('shared') } : {})
+  const mediaStateListeners = new Set<(state: MediaState) => void>()
+  const mediaCommandListeners = new Set<(command: MediaCommand) => void>()
+  // Standalone fallback: a hub local to this document, mirroring the shell one.
+  let localMedia: MediaHub | null = null
+  function getLocalMedia(): MediaHub {
+    if (!localMedia) {
+      localMedia = createMediaHub()
+      localMedia.onState((state) => {
+        for (const handler of mediaStateListeners) handler(state)
+      })
+      localMedia.onCommand((command) => {
+        for (const handler of mediaCommandListeners) handler(command)
+      })
+    }
+    return localMedia
+  }
   const token = new URLSearchParams(window.location.search).get('gf-token') ?? ''
   let sessionProfile: Pick<Profile, 'id' | 'name' | 'avatar' | 'accent'> | null = null
   const client = token
@@ -154,6 +206,10 @@ export async function initSDK(options: InitOptions = {}): Promise<GFApi> {
             if (next && typeof next.id === 'string') {
               sessionProfile = { id: next.id, name: next.name, avatar: next.avatar, accent: next.accent }
             }
+          } else if (channel === 'media:state') {
+            for (const handler of mediaStateListeners) handler(payload as MediaState)
+          } else if (channel === 'media:command') {
+            for (const handler of mediaCommandListeners) handler(payload as MediaCommand)
           }
           bus.emit(channel, payload)
         },
@@ -274,6 +330,76 @@ export async function initSDK(options: InitOptions = {}): Promise<GFApi> {
       home() {
         require_('navigation', 'shell.home')
         if (embedded) void client?.call('shell.home', {})
+      },
+    },
+    media: {
+      async play(id, source) {
+        require_('media', 'media.play')
+        if (embedded) return client!.call<MediaSourceState>('media.play', { id, source })
+        return getLocalMedia().play(appId, id, source)
+      },
+      async load(id, source) {
+        require_('media', 'media.load')
+        if (embedded) return client!.call<MediaSourceState>('media.load', { id, source })
+        return getLocalMedia().load(appId, id, source)
+      },
+      async pause(id) {
+        require_('media', 'media.pause')
+        if (embedded) return client!.call<void>('media.pause', { id }).then(() => undefined)
+        return getLocalMedia().pause(appId, id)
+      },
+      async resume(id) {
+        require_('media', 'media.resume')
+        if (embedded) return client!.call<void>('media.resume', { id }).then(() => undefined)
+        return getLocalMedia().resume(appId, id)
+      },
+      async remove(id, fadeMs) {
+        require_('media', 'media.remove')
+        if (embedded) return client!.call<void>('media.remove', { id, fadeMs }).then(() => undefined)
+        return getLocalMedia().remove(appId, id, fadeMs)
+      },
+      async clear() {
+        require_('media', 'media.clear')
+        if (embedded) return client!.call<void>('media.clear').then(() => undefined)
+        return getLocalMedia().clear(appId)
+      },
+      async setVolume(id, volume, fadeMs) {
+        require_('media', 'media.setVolume')
+        if (embedded) return client!.call<void>('media.setVolume', { id, volume, fadeMs }).then(() => undefined)
+        return getLocalMedia().setVolume(appId, id, volume, fadeMs)
+      },
+      async setMasterVolume(volume, fadeMs) {
+        require_('media', 'media.setMasterVolume')
+        if (embedded) return client!.call<void>('media.setMasterVolume', { volume, fadeMs }).then(() => undefined)
+        return getLocalMedia().setMasterVolume(appId, volume, fadeMs)
+      },
+      async setPaused(paused) {
+        require_('media', 'media.setPaused')
+        if (embedded) return client!.call<void>('media.setPaused', { paused }).then(() => undefined)
+        return getLocalMedia().setPaused(appId, paused)
+      },
+      async setMetadata(id, meta) {
+        require_('media', 'media.setMetadata')
+        if (embedded) return client!.call<void>('media.setMetadata', { id, meta }).then(() => undefined)
+        return getLocalMedia().setMetadata(appId, id, meta)
+      },
+      async list() {
+        require_('media', 'media.list')
+        if (embedded) return client!.call<MediaSourceState[]>('media.list')
+        return getLocalMedia().list(appId)
+      },
+      async setSleepTimer(ms) {
+        require_('media', 'media.setSleepTimer')
+        if (embedded) return client!.call<void>('media.setSleepTimer', { ms }).then(() => undefined)
+        return getLocalMedia().setSleepTimer(appId, ms)
+      },
+      onState(handler) {
+        mediaStateListeners.add(handler)
+        return () => mediaStateListeners.delete(handler)
+      },
+      onCommand(handler) {
+        mediaCommandListeners.add(handler)
+        return () => mediaCommandListeners.delete(handler)
       },
     },
     scheduler: {

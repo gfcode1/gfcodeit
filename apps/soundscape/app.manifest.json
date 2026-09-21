@@ -8,6 +8,14 @@
   "version": "1.0.0",
   "sdk": "^1.0.0",
   "entry": "index.html",
-  "permissions": ["storage", "profile", "ui.toast"],
-  "storage": { "scope": "profile", "schemaVersion": 1 }
+  "permissions": [
+    "storage",
+    "profile",
+    "ui.toast",
+    "media"
+  ],
+  "storage": {
+    "scope": "profile",
+    "schemaVersion": 1
+  }
 }

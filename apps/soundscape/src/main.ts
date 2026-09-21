@@ -87,7 +87,7 @@ async function start(): Promise<void> {
   mixer.append(playButton, mixerCount, masterWrap, clearButton)
   root.append(header, toolbar, filterBar, content, mixer)
 
-  const engine = new SoundEngine(updateMixer)
+  const engine = new SoundEngine(gf, updateMixer)
   engine.setMasterVolume(storedMaster)
   for (const [id, volume] of volumes) {
     const def = getSound(id)

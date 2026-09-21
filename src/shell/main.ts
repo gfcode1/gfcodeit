@@ -21,9 +21,11 @@ import { applyTheme, resolveTheme, watchSystemTheme } from '../core/theme'
 import { downloadBackup, exportProfile } from '../core/backup'
 import { setAssetBase } from '../core/icons'
 import { scheduler } from '../core/scheduler'
+import { createMediaHub } from '../core/media'
 import { installAudioUnlock, playAlarm, stopAlarm } from '../core/audio'
 import { toast } from '../ui/overlay'
 import { AppHost } from './app-host'
+import { createMediaBar } from './media-bar'
 import { createLauncher } from './launcher'
 import { renderProfiles, renderSettings } from './views'
 import { renderActivity } from './activity'
@@ -36,7 +38,15 @@ import {
   PROFILES_ROUTE,
   SETTINGS_ROUTE,
 } from '../core/lifecycle'
-import type { AppManifest, BridgeMethod, Profile, ScheduleDraft, ScheduleItem, ThemeMode } from '../core/types'
+import type {
+  AppManifest,
+  BridgeMethod,
+  MediaSourceInit,
+  Profile,
+  ScheduleDraft,
+  ScheduleItem,
+  ThemeMode,
+} from '../core/types'
 
 setAssetBase(import.meta.env.BASE_URL)
 
@@ -49,6 +59,31 @@ let profile!: Profile
 let appHost: AppHost | null = null
 const badges = new Map<string, number>()
 let online = navigator.onLine
+
+/* ------------------------------- media ------------------------------- */
+
+const mediaHub = createMediaHub()
+const mediaBarHost = document.getElementById('media-bar')!
+const mediaBar = createMediaBar(mediaBarHost, {
+  onOpenApp: (appId) => navigate(`${APP_ROUTE_PREFIX}${appId}`),
+  onToggle: () => {
+    const owner = mediaHub.state().owner
+    if (owner) void mediaHub.toggle(owner)
+  },
+  onStop: () => {
+    const owner = mediaHub.state().owner
+    if (owner) void mediaHub.clear(owner)
+  },
+  onVolume: (volume) => {
+    const owner = mediaHub.state().owner
+    if (owner) void mediaHub.setMasterVolume(owner, volume, 80)
+  },
+})
+mediaHub.onState((state) => mediaBar.update(state, state.owner ? getApp(state.owner) : undefined))
+mediaHub.onOwnerChange((owner, state) => {
+  if (appHost?.appId === owner) appHost.notifyMedia(state)
+})
+mediaHub.onCommand((command) => appHost?.emitMediaCommand(command))
 
 function setConnection(next: boolean): void {
   online = next
@@ -256,6 +291,7 @@ async function refreshProfileCache(): Promise<void> {
 async function switchProfile(id: string): Promise<void> {
   if (id === profile.id) return
   setCurrentId(id)
+  mediaHub.stopAll()
   profile = (await listProfiles()).find((p) => p.id === id)!
   applyTheme(profile.themeMode, profile.accent)
   appHost?.notifyProfile()
@@ -493,7 +529,55 @@ function presentFired(item: ScheduleItem): void {
   renderTopbar()
 }
 
+function mediaOwner(): string {
+  const id = appHost?.appId
+  if (!id) throw Object.assign(new Error('No active app'), { code: 'E_MEDIA' })
+  return id
+}
+
 const bridgeHandlers: Partial<Record<BridgeMethod, (params: unknown) => unknown | Promise<unknown>>> = {
+  'media.play': (params) => {
+    const p = params as { id: string; source: MediaSourceInit }
+    return mediaHub.play(mediaOwner(), p.id, p.source)
+  },
+  'media.load': (params) => {
+    const p = params as { id: string; source: MediaSourceInit }
+    return mediaHub.load(mediaOwner(), p.id, p.source)
+  },
+  'media.pause': (params) => {
+    const p = params as { id?: string }
+    return mediaHub.pause(mediaOwner(), p.id)
+  },
+  'media.resume': (params) => {
+    const p = params as { id?: string }
+    return mediaHub.resume(mediaOwner(), p.id)
+  },
+  'media.remove': (params) => {
+    const p = params as { id: string; fadeMs?: number }
+    return mediaHub.remove(mediaOwner(), p.id, p.fadeMs)
+  },
+  'media.clear': () => mediaHub.clear(mediaOwner()),
+  'media.setVolume': (params) => {
+    const p = params as { id: string; volume: number; fadeMs?: number }
+    return mediaHub.setVolume(mediaOwner(), p.id, p.volume, p.fadeMs)
+  },
+  'media.setMasterVolume': (params) => {
+    const p = params as { volume: number; fadeMs?: number }
+    return mediaHub.setMasterVolume(mediaOwner(), p.volume, p.fadeMs)
+  },
+  'media.setPaused': (params) => {
+    const p = params as { paused: boolean }
+    return mediaHub.setPaused(mediaOwner(), p.paused)
+  },
+  'media.setMetadata': (params) => {
+    const p = params as { id: string; meta: Partial<MediaSourceInit> }
+    return mediaHub.setMetadata(mediaOwner(), p.id, p.meta)
+  },
+  'media.list': () => mediaHub.list(mediaOwner()),
+  'media.setSleepTimer': (params) => {
+    const p = params as { ms: number | null }
+    return mediaHub.setSleepTimer(mediaOwner(), p.ms)
+  },
   'ui.toast': (params) => {
     const p = params as { message: string; variant?: 'default' | 'ok' | 'danger'; duration?: number }
     toast(p.message, { variant: p.variant, duration: p.duration })

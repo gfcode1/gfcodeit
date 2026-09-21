@@ -9,6 +9,41 @@ function check(name, condition, detail = '') {
   console.log(`${condition ? 'PASS' : 'FAIL'}  ${name}${detail ? ' — ' + detail : ''}`)
 }
 
+/** Tiny silent WAV as a data URI, used to exercise the media hub without network. */
+function silentWav() {
+  const rate = 8000
+  const data = Buffer.alloc(rate / 2, 0x80)
+  const header = Buffer.alloc(44)
+  header.write('RIFF', 0)
+  header.writeUInt32LE(36 + data.length, 4)
+  header.write('WAVE', 8)
+  header.write('fmt ', 12)
+  header.writeUInt32LE(16, 16)
+  header.writeUInt16LE(1, 20)
+  header.writeUInt16LE(1, 22)
+  header.writeUInt32LE(rate, 24)
+  header.writeUInt32LE(rate, 28)
+  header.writeUInt16LE(1, 32)
+  header.writeUInt16LE(8, 34)
+  header.write('data', 36)
+  header.writeUInt32LE(data.length, 40)
+  return 'data:audio/wav;base64,' + Buffer.concat([header, data]).toString('base64')
+}
+
+/** True when the media bar is laid out with a real height inside the viewport. */
+async function mediaBarFit(page) {
+  return page.evaluate(() => {
+    const el = document.querySelector('#media-bar')
+    if (!el || el.hasAttribute('hidden')) return { visible: false, height: 0, inside: false }
+    const rect = el.getBoundingClientRect()
+    return {
+      visible: getComputedStyle(el).display !== 'none',
+      height: Math.round(rect.height),
+      inside: rect.height > 0 && rect.top >= -1 && rect.bottom <= window.innerHeight + 1,
+    }
+  })
+}
+
 const browser = await chromium.launch(executablePath ? { executablePath, args: ['--no-sandbox'] } : { args: ['--no-sandbox'] })
 const context = await browser.newContext({ viewport: { width: 420, height: 860 } })
 const page = await context.newPage()
@@ -355,6 +390,153 @@ try {
   await cc2.locator('gf-page-header gf-button', { hasText: 'History' }).click()
   await cc2.locator('gf-modal[open] gf-empty-state').waitFor({ timeout: 5000 })
   check('calculator history can be cleared', true)
+
+  // News app: bundled awesome-rss-feeds catalog, adding feeds, OPML export
+  await page.goto(BASE, { waitUntil: 'networkidle' })
+  await page.waitForSelector('.app-card', { timeout: 15000 })
+  const newsCard = page
+    .locator('.app-card', { has: page.locator('.app-card__name', { hasText: /^News$/ }) })
+    .first()
+  check('News app discovered', (await newsCard.count()) > 0)
+  await newsCard.hover()
+  await newsCard.getByText('Open').click()
+  const nw = page.frameLocator('iframe.app-frame')
+  await nw.locator('.news-nav').waitFor({ timeout: 15000 })
+
+  await nw.locator('.news-nav gf-chip', { hasText: 'Browse' }).click()
+  await nw.locator('.catalog-list gf-accordion-item').first().waitFor({ timeout: 15000 })
+  const catalogCount = await nw.locator('.catalog-feed').count()
+  check('news catalog renders from bundled JSON', catalogCount > 0, `${catalogCount} visible`)
+
+  await nw.locator('.catalog-search input').fill('Ars Technica')
+  await page.waitForTimeout(200)
+  await nw.locator('.catalog-feed', { hasText: 'Ars Technica' }).first().waitFor({ timeout: 5000 })
+  await nw
+    .locator('.catalog-feed', { hasText: 'Ars Technica' })
+    .first()
+    .locator('gf-button', { hasText: 'Add' })
+    .click()
+  await page.waitForTimeout(300)
+  await nw.locator('.news-nav gf-chip', { hasText: 'Feeds' }).click()
+  await nw.locator('.feed-row').first().waitFor({ timeout: 10000 })
+  check('news feed added from catalog', (await nw.locator('.feed-row').count()) >= 1)
+
+  const [newsDownload] = await Promise.all([
+    page.waitForEvent('download', { timeout: 10000 }).catch(() => null),
+    nw.locator('.news-toolbar gf-button', { hasText: 'Export OPML' }).click(),
+  ])
+  check('news exports OPML', !!newsDownload, newsDownload ? newsDownload.suggestedFilename() : 'no download')
+
+  await page.goto(BASE, { waitUntil: 'networkidle' })
+  await page.waitForSelector('.app-card', { timeout: 15000 })
+  await newsCard.hover()
+  await newsCard.getByText('Open').click()
+  const nw2 = page.frameLocator('iframe.app-frame')
+  await nw2.locator('.news-nav gf-chip', { hasText: 'Feeds' }).click()
+  await nw2.locator('.feed-row').first().waitFor({ timeout: 15000 })
+  check('news feeds persist across reload', (await nw2.locator('.feed-row').count()) >= 1)
+
+  // Centralized audio: the shell owns playback, so it survives app switches
+  await page.goto(BASE, { waitUntil: 'networkidle' })
+  await page.waitForSelector('.app-card', { timeout: 15000 })
+  const soundscapeCard = page.locator('.app-card').filter({ hasText: 'Soundscape' }).first()
+  check('Soundscape app discovered', (await soundscapeCard.count()) > 0)
+  await soundscapeCard.hover()
+  await soundscapeCard.getByText('Open').click()
+  const sc = page.frameLocator('iframe.app-frame')
+  await sc.locator('.sound-card').first().waitFor({ timeout: 15000 })
+  await sc.locator('.sound-card').first().click()
+  await page.waitForSelector('#media-bar:not([hidden])', { timeout: 10000 })
+  await page.waitForTimeout(800)
+  check('global media bar appears for shell-owned playback', await page.locator('#media-bar').isVisible())
+  check(
+    'media bar shows the owning app',
+    ((await page.locator('.media-bar__title').textContent()) ?? '').trim() === 'Soundscape',
+    await page.locator('.media-bar__title').textContent(),
+  )
+
+  await sc.locator('.sound-card').nth(1).click()
+  await page.waitForTimeout(500)
+  check(
+    'media bar mixes multiple sources',
+    ((await page.locator('.media-bar__meta').textContent()) ?? '').includes('2 sounds'),
+    await page.locator('.media-bar__meta').textContent(),
+  )
+
+  await page.locator('#topbar').getByLabel('Back').click()
+  await page.waitForSelector('.app-card', { timeout: 10000 })
+  check('audio keeps playing on the launcher', await page.locator('#media-bar').isVisible())
+
+  // The bar must stay on screen at both mobile and desktop widths (the desktop
+  // grid used to place it in a 0-height row, below the fold).
+  const mobileFit = await mediaBarFit(page)
+  await page.setViewportSize({ width: 1200, height: 800 })
+  await page.waitForTimeout(250)
+  const desktopFit = await mediaBarFit(page)
+  await page.setViewportSize({ width: 420, height: 860 })
+  await page.waitForTimeout(250)
+  check(
+    'media bar stays inside the viewport (mobile + desktop)',
+    mobileFit.inside && desktopFit.inside,
+    `mobile=${JSON.stringify(mobileFit)} desktop=${JSON.stringify(desktopFit)}`,
+  )
+
+  // Opening a non-media app unmounts the Soundscape iframe; audio must persist.
+  const todoMediaCard = page.locator('.app-card').filter({ hasText: 'Todo' }).first()
+  await todoMediaCard.hover()
+  await todoMediaCard.getByText('Open').click()
+  const tm = page.frameLocator('iframe.app-frame')
+  await tm.locator('.todo-toolbar').waitFor({ timeout: 15000 })
+  const mediaStatus = await page.locator('#media-bar').getAttribute('data-status')
+  check(
+    'shell-owned audio survives switching to another app',
+    (await page.locator('#media-bar').isVisible()) && (mediaStatus === 'playing' || mediaStatus === 'loading'),
+    `status=${mediaStatus}`,
+  )
+
+  await page.setViewportSize({ width: 1200, height: 800 })
+  await page.waitForTimeout(250)
+  const appDesktopFit = await mediaBarFit(page)
+  await page.setViewportSize({ width: 420, height: 860 })
+  await page.waitForTimeout(250)
+  check('media bar stays inside the viewport inside apps (desktop)', appDesktopFit.inside, JSON.stringify(appDesktopFit))
+
+  const todoMediaFrame = page.frames().find((frame) => frame.url().includes('/apps/todo/'))
+  const denied = await todoMediaFrame.evaluate(() =>
+    window.GF.media.list().then(() => 'allowed').catch((error) => error.code),
+  )
+  check('media permission is enforced per app', denied === 'E_PERMISSION', String(denied))
+
+  // Exclusive playback: starting a stream in Radio stops Soundscape.
+  await page.locator('#topbar').getByLabel('Back').click()
+  await page.waitForSelector('.app-card', { timeout: 10000 })
+  const radioMediaCard = page
+    .locator('.app-card', { has: page.locator('.app-card__name', { hasText: /^Radio$/ }) })
+    .first()
+  await radioMediaCard.hover()
+  await radioMediaCard.getByText('Open').click()
+  const rm = page.frameLocator('iframe.app-frame')
+  await rm.locator('.radio-toolbar').waitFor({ timeout: 15000 })
+  const radioMediaFrame = page.frames().find((frame) => frame.url().includes('/apps/radio/'))
+  const handedOff = await radioMediaFrame.evaluate(
+    (url) =>
+      window.GF.media
+        .play('stream', { url, loop: true, title: 'Smoke stream', volume: 0.4 })
+        .then((state) => state.status),
+    silentWav(),
+  )
+  check('app can hand a stream to the shell hub', handedOff === 'playing' || handedOff === 'loading', String(handedOff))
+  await page.waitForTimeout(600)
+  check(
+    'starting audio elsewhere takes over exclusively',
+    ((await page.locator('.media-bar__title').textContent()) ?? '').trim() === 'Smoke stream',
+    await page.locator('.media-bar__title').textContent(),
+  )
+
+  await page.locator('.media-bar__controls button[aria-label="Pause"]').click()
+  await page.waitForTimeout(400)
+  const pausedStatus = await radioMediaFrame.evaluate(() => window.GF.media.list().then((sources) => sources[0]?.status))
+  check('global media bar can pause playback', pausedStatus === 'paused', String(pausedStatus))
 
   check('no page/console errors', errors.length === 0, errors.slice(0, 3).join(' | '))
 } catch (error) {

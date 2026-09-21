@@ -1,31 +1,43 @@
+import type { GFApi } from '../../../src/core/sdk'
+import type { MediaState } from '../../../src/core/types'
 import type { SoundDef } from './catalog'
 
-const FADE_MS = 400
 const VOLUME_FADE_MS = 120
-
-interface Layer {
-  def: SoundDef
-  audio: HTMLAudioElement
-  volume: number
-  raf: number | null
-}
+const REMOVE_FADE_MS = 200
 
 function clamp(value: number): number {
   return Math.min(1, Math.max(0, value))
 }
 
 /**
- * Minimal layered audio mixer. One looping HTMLAudioElement per active sound,
- * with per-sound and master gain, smoothed fades, and a global pause.
+ * Layered ambient mixer backed by the framework media hub. Each active sound is
+ * one hub source with its own volume; the hub owns playback so layers keep
+ * playing while the app is backgrounded or unmounted.
  */
 export class SoundEngine {
-  private readonly layers = new Map<string, Layer>()
+  private readonly gf: GFApi
+  private readonly onChange: () => void
+  private readonly volumes = new Map<string, number>()
   private master = 0.8
   private paused = true
-  private readonly onChange: () => void
+  private readonly unsubscribe: () => void
 
-  constructor(onChange: () => void = () => {}) {
+  constructor(gf: GFApi, onChange: () => void = () => {}) {
+    this.gf = gf
     this.onChange = onChange
+    this.unsubscribe = gf.media.onState((state) => this.sync(state))
+    // Re-attach to layers the shell still plays after an app remount.
+    void gf.media
+      .list()
+      .then((sources) => {
+        if (sources.length === 0) return
+        for (const source of sources) this.volumes.set(source.id, source.volume)
+        this.paused = !sources.some(
+          (source) => source.status === 'playing' || source.status === 'loading',
+        )
+        this.onChange()
+      })
+      .catch(() => undefined)
   }
 
   get isPaused(): boolean {
@@ -33,7 +45,7 @@ export class SoundEngine {
   }
 
   get count(): number {
-    return this.layers.size
+    return this.volumes.size
   }
 
   get masterVolume(): number {
@@ -41,114 +53,78 @@ export class SoundEngine {
   }
 
   activeIds(): string[] {
-    return [...this.layers.keys()]
+    return [...this.volumes.keys()]
   }
 
   has(id: string): boolean {
-    return this.layers.has(id)
+    return this.volumes.has(id)
   }
 
   add(def: SoundDef, volume: number): void {
-    if (this.layers.has(def.id)) return
-    const audio = new Audio(def.url)
-    audio.loop = true
-    audio.preload = 'auto'
-    audio.volume = 0
-    const layer: Layer = { def, audio, volume: clamp(volume), raf: null }
-    this.layers.set(def.id, layer)
-    if (!this.paused) {
-      void audio.play().catch(() => undefined)
-      this.fadeTo(layer, this.effective(layer))
-    }
+    if (this.volumes.has(def.id)) return
+    this.volumes.set(def.id, clamp(volume))
+    const source = { url: def.url, loop: true, volume: clamp(volume) }
+    if (this.paused) void this.gf.media.load(def.id, source)
+    else void this.gf.media.play(def.id, source)
     this.onChange()
   }
 
   remove(id: string): void {
-    const layer = this.layers.get(id)
-    if (!layer) return
-    this.layers.delete(id)
-    this.fadeTo(layer, 0, () => {
-      layer.audio.pause()
-      layer.audio.removeAttribute('src')
-      layer.audio.load()
-    })
+    if (!this.volumes.delete(id)) return
+    void this.gf.media.remove(id, REMOVE_FADE_MS)
     this.onChange()
   }
 
   setVolume(id: string, volume: number): void {
-    const layer = this.layers.get(id)
-    if (!layer) return
-    layer.volume = clamp(volume)
-    if (!this.paused) this.fadeTo(layer, this.effective(layer), undefined, VOLUME_FADE_MS)
+    if (!this.volumes.has(id)) return
+    this.volumes.set(id, clamp(volume))
+    void this.gf.media.setVolume(id, clamp(volume), VOLUME_FADE_MS)
   }
 
   setMasterVolume(value: number): void {
     this.master = clamp(value)
-    if (this.paused) return
-    for (const layer of this.layers.values()) {
-      this.fadeTo(layer, this.effective(layer), undefined, VOLUME_FADE_MS)
-    }
+    void this.gf.media.setMasterVolume(this.master)
   }
 
   setPaused(next: boolean): void {
     if (this.paused === next) return
     this.paused = next
-    for (const layer of this.layers.values()) {
-      if (next) {
-        this.fadeTo(layer, 0, () => layer.audio.pause())
-      } else {
-        void layer.audio.play().catch(() => undefined)
-        this.fadeTo(layer, this.effective(layer))
-      }
-    }
+    void this.gf.media.setPaused(next)
     this.onChange()
   }
 
   clear(): void {
-    for (const id of [...this.layers.keys()]) this.remove(id)
+    this.volumes.clear()
+    void this.gf.media.clear()
+    this.onChange()
   }
 
-  /** Stops audio immediately without fades (used on page teardown). */
+  /** Drops listeners; standalone playback is cleared, shell playback is kept. */
   dispose(): void {
-    for (const layer of this.layers.values()) {
-      if (layer.raf !== null) cancelAnimationFrame(layer.raf)
-      layer.audio.pause()
-    }
-    this.layers.clear()
+    this.unsubscribe()
+    if (!this.gf.embedded) void this.gf.media.clear()
   }
 
-  private effective(layer: Layer): number {
-    return this.paused ? 0 : layer.volume * this.master
-  }
-
-  private fadeTo(
-    layer: Layer,
-    target: number,
-    onDone?: () => void,
-    duration = FADE_MS,
-  ): void {
-    if (layer.raf !== null) {
-      cancelAnimationFrame(layer.raf)
-      layer.raf = null
-    }
-    const start = layer.audio.volume
-    const to = clamp(target)
-    if (Math.abs(start - to) < 0.001) {
-      layer.audio.volume = to
-      onDone?.()
-      return
-    }
-    const t0 = performance.now()
-    const step = (now: number) => {
-      const t = Math.min(1, (now - t0) / duration)
-      layer.audio.volume = clamp(start + (to - start) * t)
-      if (t < 1) {
-        layer.raf = requestAnimationFrame(step)
-      } else {
-        layer.raf = null
-        onDone?.()
+  private sync(state: MediaState): void {
+    if (state.owner && state.owner !== this.gf.appId) return
+    const ids = new Set(state.sources.map((source) => source.id))
+    let changed = false
+    for (const id of [...this.volumes.keys()]) {
+      if (!ids.has(id)) {
+        this.volumes.delete(id)
+        changed = true
       }
     }
-    layer.raf = requestAnimationFrame(step)
+    for (const source of state.sources) {
+      if (this.volumes.get(source.id) !== source.volume) {
+        this.volumes.set(source.id, source.volume)
+        changed = true
+      }
+    }
+    if (state.sources.length > 0 && state.paused !== this.paused) {
+      this.paused = state.paused
+      changed = true
+    }
+    if (changed) this.onChange()
   }
 }
