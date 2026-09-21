@@ -595,17 +595,18 @@ function openConfirm(
     ok.setAttribute('variant', options.danger ? 'danger' : 'primary')
     ok.textContent = options.okLabel ?? 'Confirm'
 
+    let settled = false
     const finish = (value: boolean) => {
+      if (settled) return
+      settled = true
       modal.close()
       modal.remove()
       resolve(value)
     }
     cancel.addEventListener('click', () => finish(false))
     ok.addEventListener('click', () => finish(true))
-    modal.addEventListener('gf-close', () => {
-      modal.remove()
-      resolve(false)
-    })
+    // close() emits gf-close, so route it through finish to avoid resolving twice.
+    modal.addEventListener('gf-close', () => finish(false))
 
     modal.append(body, cancel, ok)
     document.body.append(modal)

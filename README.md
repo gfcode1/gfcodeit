@@ -91,6 +91,10 @@ Bundled example apps:
   with a top-charts view, favorites, recent history, a full player (media
   session, sleep timer), click tracking and station voting. HLS-only and
   insecure (HTTP) streams are filtered out for reliable playback.
+- **Calculator** — basic arithmetic with parentheses, powers and percentages,
+  a memory register (M+/M−/MR/MC) and a copyable result. Calculations are kept
+  in a reusable history, persisted per profile; the whole thing is keyboard
+  friendly.
 
 ### The manifest
 

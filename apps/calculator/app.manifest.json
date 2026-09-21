@@ -1,0 +1,13 @@
+{
+  "id": "calculator",
+  "name": "Calculator",
+  "description": "Calculator with memory and history, saved per profile.",
+  "icon": "1F9EE",
+  "color": "#ff4d00",
+  "category": "utilities",
+  "version": "1.0.0",
+  "sdk": "^1.0.0",
+  "entry": "index.html",
+  "permissions": ["storage", "profile", "ui.toast", "ui.confirm"],
+  "storage": { "scope": "profile", "schemaVersion": 1 }
+}
