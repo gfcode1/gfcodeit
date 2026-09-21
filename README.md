@@ -236,6 +236,25 @@ The site is built for a subpath (default `/gfcodeit/`, see `base` in
 `vite.config.ts`). Routing is hash-based, so any static host works without
 server rewrites. Output goes to `dist/`.
 
+### GitHub Pages
+
+Deployment is automated by `.github/workflows/deploy.yml`, which builds on CI
+(`pnpm install --frozen-lockfile && pnpm build`) and publishes `dist/` as a
+Pages artifact on every push to `main` (or via a manual `workflow_dispatch`).
+Nothing built is committed — `dist/` and the generated `public/` trees stay
+gitignored and are produced in the runner.
+
+One-time setup: **Settings → Pages → Build and deployment → Source = "GitHub
+Actions"**. The site is served at `https://gfcode1.github.io/gfcodeit/` — the
+`base` already matches the repository name, so no config change is needed.
+
+Verify the live site after a run:
+
+```bash
+BASE_URL=https://gfcode1.github.io/gfcodeit/ CHROME=/path/to/chrome pnpm smoke
+BASE_URL=https://gfcode1.github.io/gfcodeit/ CHROME=/path/to/chrome pnpm pwa:audit
+```
+
 ## Offline & install (PWA)
 
 The production build ships a service worker (`vite-plugin-pwa` / Workbox):
