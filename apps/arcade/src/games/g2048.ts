@@ -28,7 +28,7 @@ function emptyGrid(): Grid {
 }
 
 export function create(hooks: GameHooks): GameInstance {
-  let grid: Grid = emptyGrid()
+  const grid: Grid = emptyGrid()
   let score = 0
   let dead = false
   let won = false
@@ -36,11 +36,11 @@ export function create(hooks: GameHooks): GameInstance {
 
   function addRandom(): void {
     const empties: { x: number; y: number }[] = []
-    grid.forEach((row, y) =>
+    grid.forEach((row, y) => {
       row.forEach((tile, x) => {
         if (tile.value === 0) empties.push({ x, y })
-      }),
-    )
+      })
+    })
     if (empties.length === 0) return
     const spot = empties[Math.floor(Math.random() * empties.length)]!
     const tile = grid[spot.y]![spot.x]!

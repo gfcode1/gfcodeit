@@ -7,3 +7,5 @@ public/rss-catalog.json
 *.log
 .DS_Store
 .vite/
+coverage/
+apps/soundscape/.sounds-src/

@@ -57,7 +57,9 @@
   background: var(--gf-surface);
   border: var(--gf-border-w) solid var(--gf-ink);
   box-shadow: var(--gf-shadow-2);
-  transition: transform var(--gf-dur-fast) var(--gf-ease), opacity var(--gf-dur-fast) var(--gf-ease);
+  transition:
+    transform var(--gf-dur-fast) var(--gf-ease),
+    opacity var(--gf-dur-fast) var(--gf-ease);
 }
 
 .task:hover {
@@ -65,7 +67,7 @@
 }
 
 .task.is-dragging {
-  opacity: .45;
+  opacity: 0.45;
 }
 
 .task.is-over {
@@ -108,7 +110,7 @@
 .task__list {
   font-family: var(--gf-font-mono);
   text-transform: uppercase;
-  letter-spacing: .06em;
+  letter-spacing: 0.06em;
   color: var(--gf-accent-ink);
   background: var(--gf-accent);
   padding: 0 var(--gf-s1);
@@ -137,7 +139,7 @@
 .task__actions {
   display: flex;
   gap: var(--gf-s1);
-  opacity: .65;
+  opacity: 0.65;
 }
 
 .task:hover .task__actions,
@@ -194,10 +196,20 @@
       "actions actions";
   }
 
-  .task__handle { grid-area: handle; justify-self: end; }
-  .task gf-checkbox { grid-area: check; }
-  .task__main { grid-area: main; }
-  .task__actions { grid-area: actions; opacity: 1; }
+  .task__handle {
+    grid-area: handle;
+    justify-self: end;
+  }
+  .task gf-checkbox {
+    grid-area: check;
+  }
+  .task__main {
+    grid-area: main;
+  }
+  .task__actions {
+    grid-area: actions;
+    opacity: 1;
+  }
 
   .task-form__row {
     grid-template-columns: 1fr;

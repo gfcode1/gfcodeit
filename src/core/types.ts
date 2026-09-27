@@ -1,13 +1,6 @@
 export type StorageScope = 'profile' | 'shared'
 
-export type Category =
-  | 'productivity'
-  | 'utilities'
-  | 'media'
-  | 'data'
-  | 'tools'
-  | 'games'
-  | 'misc'
+export type Category = 'productivity' | 'utilities' | 'media' | 'data' | 'tools' | 'games' | 'misc'
 
 export type Permission =
   | 'storage'

@@ -1,6 +1,6 @@
-import type { Panel, PanelContext } from './types'
 import { el } from './dom'
 import { formatClock, formatDate } from './format'
+import type { Panel, PanelContext } from './types'
 
 export function createClockPanel(ctx: PanelContext): Panel {
   let timer: number | null = null

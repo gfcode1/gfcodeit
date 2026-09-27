@@ -62,7 +62,9 @@ body {
   box-shadow: var(--gf-shadow-2);
   overflow: hidden;
   cursor: pointer;
-  transition: transform var(--gf-dur-fast) var(--gf-ease), box-shadow var(--gf-dur-fast) var(--gf-ease);
+  transition:
+    transform var(--gf-dur-fast) var(--gf-ease),
+    box-shadow var(--gf-dur-fast) var(--gf-ease);
 }
 
 .station-card:hover {
@@ -135,7 +137,7 @@ body {
   font-family: var(--gf-font-mono);
   font-size: var(--gf-fs-xs);
   text-transform: uppercase;
-  letter-spacing: .04em;
+  letter-spacing: 0.04em;
 }
 
 .station-card__tags {
@@ -200,7 +202,7 @@ body {
 .now-playing__title {
   font-family: var(--gf-font-mono);
   text-transform: uppercase;
-  letter-spacing: .05em;
+  letter-spacing: 0.05em;
   font-size: var(--gf-fs-sm);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -242,7 +244,7 @@ body {
   font-family: var(--gf-font-mono);
   font-size: var(--gf-fs-xs);
   text-transform: uppercase;
-  letter-spacing: .05em;
+  letter-spacing: 0.05em;
   color: var(--gf-muted);
   white-space: nowrap;
 }

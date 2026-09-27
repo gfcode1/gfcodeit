@@ -71,9 +71,7 @@ export function nextOrder(tasks: Task[], listId?: string): number {
 }
 
 export function tasksForList(tasks: Task[], listId: string): Task[] {
-  return tasks
-    .filter((task) => task.listId === listId)
-    .sort((a, b) => a.order - b.order || a.createdAt - b.createdAt)
+  return tasks.filter((task) => task.listId === listId).sort((a, b) => a.order - b.order || a.createdAt - b.createdAt)
 }
 
 export function parseTags(raw: string): string[] {

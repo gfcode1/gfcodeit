@@ -1,17 +1,17 @@
 import './styles.css'
 import type { GFApi } from '../../../src/core/sdk'
+import { type PlayerState, RadioPlayer } from './player'
 import {
+  type Channel,
   fetchChannels,
   fetchSongs,
   formatStreamLabel,
-  resolveStreamUrls,
-  selectStream,
-  type Channel,
   type QualityPref,
+  resolveStreamUrls,
   type Song,
   type StreamVariant,
+  selectStream,
 } from './somafm'
-import { RadioPlayer, type PlayerState } from './player'
 
 const FAVORITES_KEY = 'favorites'
 const RECENT_KEY = 'recent'
@@ -203,9 +203,7 @@ async function start(): Promise<void> {
     if (genre) list = list.filter((channel) => channel.genre.includes(genre))
     if (q) {
       list = list.filter((channel) =>
-        `${channel.title} ${channel.description} ${channel.genre.join(' ')} ${channel.dj}`
-          .toLowerCase()
-          .includes(q),
+        `${channel.title} ${channel.description} ${channel.genre.join(' ')} ${channel.dj}`.toLowerCase().includes(q),
       )
     }
     if (view === 'all') list = [...list].sort((a, b) => b.listeners - a.listeners)
@@ -435,12 +433,9 @@ async function start(): Promise<void> {
     nowPlaying.dataset.status = state.status
     if (npArt.getAttribute('src') !== channel.largeImage) npArt.src = channel.largeImage
     npTitle.textContent = channel.title
-    npSong.textContent = song
-      ? `${song.artist} — ${song.title}`
-      : channel.lastPlaying || channel.description
+    npSong.textContent = song ? `${song.artist} — ${song.title}` : channel.lastPlaying || channel.description
     npQuality.textContent = state.stream ? formatStreamLabel(state.stream) : ''
-    playButton.textContent =
-      state.status === 'playing' ? 'Pause' : state.status === 'loading' ? 'Connecting…' : 'Play'
+    playButton.textContent = state.status === 'playing' ? 'Pause' : state.status === 'loading' ? 'Connecting…' : 'Play'
     playButton.toggleAttribute('disabled', state.status === 'loading')
     if (state.error && state.error !== lastError) {
       gf.ui.toast(state.error, { variant: 'danger' })

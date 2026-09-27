@@ -1,5 +1,5 @@
-import { openDB, reqAsPromise } from './idb'
 import { CACHE_KEY_PREFIX } from './cache'
+import { openDB, reqAsPromise } from './idb'
 import type { Profile } from './types'
 
 export const BACKUP_VERSION = 1

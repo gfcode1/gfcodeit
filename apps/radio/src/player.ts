@@ -1,5 +1,5 @@
 import type { GFApi } from '../../../src/core/sdk'
-import type { MediaSourceInit, MediaState } from '../../../src/core/types'
+import type { MediaSourceInit, MediaSourceState, MediaState } from '../../../src/core/types'
 import type { Station } from './api'
 
 export type PlayerStatus = 'idle' | 'loading' | 'playing' | 'paused' | 'error'
@@ -53,7 +53,7 @@ export class RadioPlayer {
 
   /** Re-attaches to a stream the shell is still playing (on app remount). */
   async refresh(): Promise<void> {
-    let sources
+    let sources: MediaSourceState[]
     try {
       sources = await this.gf.media.list()
     } catch {

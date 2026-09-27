@@ -9,7 +9,7 @@ const SHOW_GAP = 0.16
 type Phase = 'showing' | 'input' | 'dead'
 
 export function create(hooks: GameHooks): GameInstance {
-  let sequence: number[] = []
+  const sequence: number[] = []
   let phase: Phase = 'showing'
   let showStep = 0
   let showTimer = 0

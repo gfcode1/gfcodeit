@@ -116,9 +116,9 @@ export function create(hooks: GameHooks): GameInstance {
       if (ballX < -BALL_R * 2) playerLoses()
       else if (ballX > VW + BALL_R * 2) playerScores()
     },
-    onKey(action, down) {
-      if (action === 'up') up = down
-      else if (action === 'down') down = down
+    onKey(action, pressed) {
+      if (action === 'up') up = pressed
+      else if (action === 'down') down = pressed
     },
     onPointer(input) {
       if (input.action === 'up') return

@@ -7,7 +7,7 @@
 // kept, otherwise an empty one is written so the build can still proceed.
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { dirname, join, resolve } from 'node:path'
+import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -97,9 +97,10 @@ const ENTITIES = {
 function decodeEntities(value) {
   return value.replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (match, entity) => {
     if (entity[0] === '#') {
-      const code = entity[1] === 'x' || entity[1] === 'X'
-        ? Number.parseInt(entity.slice(2), 16)
-        : Number.parseInt(entity.slice(1), 10)
+      const code =
+        entity[1] === 'x' || entity[1] === 'X'
+          ? Number.parseInt(entity.slice(2), 16)
+          : Number.parseInt(entity.slice(1), 10)
       return Number.isFinite(code) ? String.fromCodePoint(code) : match
     }
     return ENTITIES[entity.toLowerCase()] ?? match
@@ -116,8 +117,7 @@ function attr(attrs, name) {
 function parseOpml(xml) {
   const feeds = []
   const outlineRe = /<outline\b([^>]*?)\/?>/gi
-  let match
-  while ((match = outlineRe.exec(xml)) !== null) {
+  for (let match = outlineRe.exec(xml); match !== null; match = outlineRe.exec(xml)) {
     const attrs = match[1]
     const url = attr(attrs, 'xmlUrl')
     if (!url) continue
@@ -129,7 +129,10 @@ function parseOpml(xml) {
 }
 
 function slug(name) {
-  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
 }
 
 async function fetchOpml(path) {

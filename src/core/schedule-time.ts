@@ -61,7 +61,7 @@ export function nextOccurrence(base: number, repeat: ScheduleRepeat, now: number
       return date.getTime()
     }
     case 'weekly': {
-      const days = new Set(repeat.days && repeat.days.length ? repeat.days : [new Date(base).getDay()])
+      const days = new Set(repeat.days?.length ? repeat.days : [new Date(base).getDay()])
       const date = new Date(base)
       for (let i = 0; i < 366; i += 1) {
         date.setDate(date.getDate() + 1)
@@ -81,10 +81,7 @@ export function nextOccurrence(base: number, repeat: ScheduleRepeat, now: number
   }
 }
 
-export type NormalizedDraft = Omit<
-  ScheduleItem,
-  'id' | 'appId' | 'profileId' | 'createdAt' | 'updatedAt' | 'status'
->
+export type NormalizedDraft = Omit<ScheduleItem, 'id' | 'appId' | 'profileId' | 'createdAt' | 'updatedAt' | 'status'>
 
 /** Validates a draft and resolves it into a concrete entry (one-shot fireAt). */
 export function normalizeDraft(draft: ScheduleDraft, now = Date.now()): NormalizedDraft {

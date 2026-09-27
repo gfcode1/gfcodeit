@@ -1,5 +1,5 @@
-import { GFElement, define } from './base'
 import { colorIconUrl, emojiToHex, iconUrl } from '../core/icons'
+import { define, GFElement } from './base'
 
 export class GFIcon extends GFElement {
   static readonly observedAttributes = ['codepoint', 'emoji', 'size', 'label', 'variant']
@@ -34,8 +34,7 @@ export class GFIcon extends GFElement {
     if (!box) return
 
     const codepoint =
-      this.getAttribute('codepoint') ??
-      (this.getAttribute('emoji') ? emojiToHex(this.getAttribute('emoji')!) : '')
+      this.getAttribute('codepoint') ?? (this.getAttribute('emoji') ? emojiToHex(this.getAttribute('emoji')!) : '')
     if (!codepoint) return
 
     const size = this.getAttribute('size') ?? '1em'

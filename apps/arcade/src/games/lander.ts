@@ -1,5 +1,5 @@
-import type { GameHooks, GameInstance } from '../engine/types'
 import { clamp, randInt } from '../engine/format'
+import type { GameHooks, GameInstance } from '../engine/types'
 
 const VW = 160
 const VH = 120

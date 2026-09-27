@@ -47,7 +47,7 @@ body {
 .section-title {
   font-family: var(--gf-font-mono);
   text-transform: uppercase;
-  letter-spacing: .06em;
+  letter-spacing: 0.06em;
   font-size: var(--gf-fs-sm);
   margin-bottom: var(--gf-s3);
 }
@@ -105,7 +105,7 @@ body {
   font-family: var(--gf-font-mono);
   font-size: var(--gf-fs-xs);
   text-transform: uppercase;
-  letter-spacing: .04em;
+  letter-spacing: 0.04em;
 }
 
 .article-row__excerpt {
@@ -208,7 +208,7 @@ body {
 .reader-title {
   font-size: var(--gf-fs-xl);
   line-height: 1.2;
-  letter-spacing: -.01em;
+  letter-spacing: -0.01em;
 }
 
 .reader-meta {
@@ -216,7 +216,7 @@ body {
   font-family: var(--gf-font-mono);
   font-size: var(--gf-fs-xs);
   text-transform: uppercase;
-  letter-spacing: .04em;
+  letter-spacing: 0.04em;
 }
 
 .link-button {
@@ -231,7 +231,7 @@ body {
   font-family: var(--gf-font-mono);
   font-size: var(--gf-fs-sm);
   text-transform: uppercase;
-  letter-spacing: .04em;
+  letter-spacing: 0.04em;
   text-decoration: none;
 }
 

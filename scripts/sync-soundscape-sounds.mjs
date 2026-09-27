@@ -1,9 +1,13 @@
+import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const dest = join(root, 'apps', 'soundscape', 'sounds')
+// Originals are downloaded into a scratch dir (gitignored); the optimizer then
+// transcodes them into the committed apps/soundscape/sounds tree.
+const srcDir = join(root, 'apps', 'soundscape', '.sounds-src')
+const destDir = join(root, 'apps', 'soundscape', 'sounds')
 const CDN = 'https://cdn.jsdelivr.net/gh/remvze/moodist@main/public/sounds'
 const CONCURRENCY = 6
 
@@ -102,7 +106,7 @@ const FILES = [
 ]
 
 async function fetchFile(relativePath) {
-  const target = join(dest, relativePath)
+  const target = join(srcDir, relativePath)
   if (existsSync(target) && statSync(target).size > 0) {
     return { relativePath, status: 'skip' }
   }
@@ -136,16 +140,22 @@ async function run() {
         }
       } catch (error) {
         failed += 1
-        console.error(`  ✗ ${(error).message}`)
+        console.error(`  ✗ ${error.message}`)
       }
     }
   }
 
-  mkdirSync(dest, { recursive: true })
+  mkdirSync(srcDir, { recursive: true })
   await Promise.all(Array.from({ length: CONCURRENCY }, () => worker()))
 
-  console.log(`[sounds] ${downloaded} downloaded, ${skipped} up to date, ${failed} failed → apps/soundscape/sounds`)
+  console.log(`[sounds] ${downloaded} downloaded, ${skipped} up to date, ${failed} failed`)
   if (failed > 0) process.exit(1)
+
+  execFileSync(
+    'node',
+    [join(root, 'scripts', 'optimize-soundscape-sounds.mjs'), '--src', srcDir, '--dest', destDir, '--force'],
+    { stdio: 'inherit' },
+  )
 }
 
 await run()

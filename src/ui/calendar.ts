@@ -1,4 +1,4 @@
-import { GFElement, define } from './base'
+import { define, GFElement } from './base'
 
 const WEEKDAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
 

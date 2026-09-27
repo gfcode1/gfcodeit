@@ -7,13 +7,7 @@
  * (Soundscape layers each one with its own volume and a shared master).
  */
 
-import type {
-  MediaCommand,
-  MediaSourceInit,
-  MediaSourceState,
-  MediaState,
-  MediaStatus,
-} from './types'
+import type { MediaCommand, MediaSourceInit, MediaSourceState, MediaState, MediaStatus } from './types'
 
 const DEFAULT_MASTER = 0.8
 
@@ -68,6 +62,30 @@ function clamp(value: number): number {
   return Math.min(1, Math.max(0, value))
 }
 
+/** Turns an opaque media failure into something a user can act on. */
+function describeMediaError(code: number | undefined): string {
+  switch (code) {
+    case MediaError.MEDIA_ERR_ABORTED:
+      return 'Playback aborted'
+    case MediaError.MEDIA_ERR_NETWORK:
+      return 'Network error while streaming'
+    case MediaError.MEDIA_ERR_DECODE:
+      return 'Audio decoding failed'
+    case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+      return 'Stream unavailable or blocked (403/unsupported format)'
+    default:
+      return 'Stream unavailable'
+  }
+}
+
+function describePlayError(error: unknown): string {
+  const name = (error as Error | null)?.name
+  const message = (error as Error | null)?.message
+  if (name === 'NotSupportedError') return 'Stream unavailable or blocked (403/unsupported format)'
+  if (name === 'NetworkError') return 'Network error while streaming'
+  return message || 'Playback failed'
+}
+
 function statusOf(sources: MediaSourceState[], paused: boolean): MediaStatus {
   if (sources.length === 0) return 'idle'
   if (sources.some((source) => source.status === 'error')) return 'error'
@@ -115,9 +133,7 @@ export function createMediaHub(): MediaHub {
       return { owner, status: 'idle', paused: false, master: DEFAULT_MASTER, sources: [] }
     }
     const sources = [...session.sources.values()].map(toState)
-    const active = sources.some(
-      (source) => source.status === 'playing' || source.status === 'loading',
-    )
+    const active = sources.some((source) => source.status === 'playing' || source.status === 'loading')
     const paused = session.paused || !active
     return {
       owner,
@@ -220,7 +236,7 @@ export function createMediaHub(): MediaHub {
     audio.addEventListener('error', () => {
       if (!source.audio.src || source.status === 'error') return
       source.status = 'error'
-      source.error = 'Stream unavailable'
+      source.error = describeMediaError(source.audio.error?.code)
       emit(owner)
     })
     audio.addEventListener('ended', () => {
@@ -255,7 +271,7 @@ export function createMediaHub(): MediaHub {
         source.status = 'paused'
       } else if (name !== 'AbortError') {
         source.status = 'error'
-        source.error = (error as Error).message || 'Playback failed'
+        source.error = describePlayError(error)
       }
     }
     emit(session.owner)

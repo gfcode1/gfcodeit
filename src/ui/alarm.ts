@@ -1,4 +1,4 @@
-import { GFElement, define } from './base'
+import { define, GFElement } from './base'
 
 /** Full-screen alarm overlay with dismiss / snooze / open actions. */
 export class GFAlarm extends GFElement {

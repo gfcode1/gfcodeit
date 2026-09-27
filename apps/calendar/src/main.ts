@@ -3,20 +3,13 @@ import type { GFApi } from '../../../src/core/sdk'
 import {
   formatDayLabel,
   formatMonthLabel,
+  formatShortDate,
   isSameMonth,
   monthMatrix,
   normalizeTime,
   toISODate,
-  formatShortDate,
 } from './dates'
-import {
-  EVENT_COLORS,
-  createEvent,
-  eventsByDate,
-  eventsForDate,
-  timeLabel,
-  type CalendarEvent,
-} from './events'
+import { type CalendarEvent, createEvent, EVENT_COLORS, eventsByDate, eventsForDate, timeLabel } from './events'
 
 const STORAGE_KEY = 'events'
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']

@@ -1,21 +1,21 @@
 import './styles.css'
 import type { GFApi } from '../../../src/core/sdk'
+import { cancelReminder, formatDue, syncReminder } from './reminders'
 import {
-  DEFAULT_LIST_ID,
-  PRIORITIES,
   createList,
   createTask,
+  DEFAULT_LIST_ID,
+  type Filter,
   nextOrder,
   normalize,
-  parseTags,
-  tasksForList,
-  type Filter,
+  PRIORITIES,
   type Priority,
+  parseTags,
   type Task,
   type TodoData,
   type TodoList,
+  tasksForList,
 } from './store'
-import { cancelReminder, formatDue, syncReminder } from './reminders'
 
 const STORAGE_KEY = 'data'
 const FILTERS: { value: Filter; label: string }[] = [
@@ -123,9 +123,7 @@ async function start(): Promise<void> {
     if (filter === 'completed') pool = pool.filter((task) => task.done)
     if (tagFilter) pool = pool.filter((task) => task.tags.includes(tagFilter!))
     if (q) {
-      pool = pool.filter((task) =>
-        `${task.title} ${task.notes} ${task.tags.join(' ')}`.toLowerCase().includes(q),
-      )
+      pool = pool.filter((task) => `${task.title} ${task.notes} ${task.tags.join(' ')}`.toLowerCase().includes(q))
     }
     return sortTasks(pool)
   }
@@ -633,10 +631,7 @@ async function start(): Promise<void> {
 
     const header = el('gf-page-header')
     header.setAttribute('title', 'Todo')
-    header.setAttribute(
-      'subtitle',
-      `${active} active · ${done} done · ${data.tasks.length} total · ${profile.name}`,
-    )
+    header.setAttribute('subtitle', `${active} active · ${done} done · ${data.tasks.length} total · ${profile.name}`)
 
     const listsButton = el('gf-button')
     listsButton.setAttribute('slot', 'actions')

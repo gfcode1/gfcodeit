@@ -60,11 +60,7 @@ export interface Forecast {
 const GEO_URL = 'https://geocoding-api.open-meteo.com/v1/search'
 const FORECAST_URL = 'https://api.open-meteo.com/v1/forecast'
 
-export async function geocode(
-  cache: GFCacheApi,
-  query: string,
-  signal?: AbortSignal,
-): Promise<GeoResult[]> {
+export async function geocode(cache: GFCacheApi, query: string, signal?: AbortSignal): Promise<GeoResult[]> {
   const params = new URLSearchParams({ name: query, count: '6', language: 'en', format: 'json' })
   const data = await cache.fetchJson<{ results?: GeoResult[] }>(`geo:${params}`, `${GEO_URL}?${params}`, {
     ttlMs: GEO_TTL_MS,
@@ -143,7 +139,10 @@ export async function fetchForecast(
     isDay: data.current.is_day === 1,
   }
 
-  const startIndex = Math.max(0, data.hourly.time.findIndex((time) => time >= current.time))
+  const startIndex = Math.max(
+    0,
+    data.hourly.time.findIndex((time) => time >= current.time),
+  )
   const hourly: HourlyPoint[] = []
   for (let i = startIndex; i < Math.min(startIndex + 24, data.hourly.time.length); i += 1) {
     hourly.push({

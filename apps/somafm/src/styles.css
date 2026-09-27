@@ -59,7 +59,9 @@ body {
   box-shadow: var(--gf-shadow-2);
   overflow: hidden;
   cursor: pointer;
-  transition: transform var(--gf-dur-fast) var(--gf-ease), box-shadow var(--gf-dur-fast) var(--gf-ease);
+  transition:
+    transform var(--gf-dur-fast) var(--gf-ease),
+    box-shadow var(--gf-dur-fast) var(--gf-ease);
 }
 
 .channel-card:hover {
@@ -130,7 +132,7 @@ body {
   font-family: var(--gf-font-mono);
   font-size: var(--gf-fs-xs);
   text-transform: uppercase;
-  letter-spacing: .04em;
+  letter-spacing: 0.04em;
 }
 
 .channel-card__genres {
@@ -197,7 +199,7 @@ body {
 .now-playing__title {
   font-family: var(--gf-font-mono);
   text-transform: uppercase;
-  letter-spacing: .05em;
+  letter-spacing: 0.05em;
   font-size: var(--gf-fs-sm);
 }
 
@@ -229,7 +231,7 @@ body {
   font-family: var(--gf-font-mono);
   font-size: var(--gf-fs-xs);
   text-transform: uppercase;
-  letter-spacing: .05em;
+  letter-spacing: 0.05em;
   color: var(--gf-muted);
   white-space: nowrap;
 }

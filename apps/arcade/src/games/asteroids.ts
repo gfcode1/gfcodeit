@@ -49,7 +49,7 @@ function makeRock(x: number, y: number, size: number): Rock {
 
 export function create(hooks: GameHooks): GameInstance {
   let ship = { x: VW / 2, y: VH / 2, vx: 0, vy: 0, angle: -Math.PI / 2 }
-  let rocks: Rock[] = []
+  const rocks: Rock[] = []
   let bullets: Bullet[] = []
   let lives = MAX_LIVES
   let score = 0

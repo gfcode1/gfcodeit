@@ -8,5 +8,3 @@ declare global {
     GF_READY: Promise<GFApi>
   }
 }
-
-export {}

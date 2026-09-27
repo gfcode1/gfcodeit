@@ -7,6 +7,9 @@ export interface PWAOptions {
 }
 
 export function setupPWA(options: PWAOptions): void {
+  // The Electron build is served from app:// (no service worker) and manages
+  // its own updates, so the web PWA path is disabled there.
+  if (import.meta.env.VITE_GF_DESKTOP) return
   if (!import.meta.env.PROD || !('serviceWorker' in navigator)) return
 
   const updateSW = registerSW({

@@ -81,7 +81,7 @@ export function createCache(config: CacheConfig = {}): GFCacheApi {
     if (!storage) return undefined
     try {
       const entry = await storage.get<CacheEntry<T>>(CACHE_KEY_PREFIX + key)
-      if (!entry || entry.v !== 1 || typeof entry.staleUntil !== 'number') return undefined
+      if (entry?.v !== 1 || typeof entry.staleUntil !== 'number') return undefined
       memory.set(key, entry)
       return entry
     } catch {

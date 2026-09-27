@@ -1,4 +1,4 @@
-import { GFElement, define } from './base'
+import { define, GFElement } from './base'
 
 export class GFModal extends GFElement {
   static readonly observedAttributes = ['open', 'title']
@@ -91,6 +91,7 @@ export class GFMenu extends GFElement {
         display: none;
       }
       :host([open]) .panel { display: block; }
+      :host([placement="up"]) .panel { top: auto; bottom: calc(100% + var(--gf-s1)); }
       ::slotted([data-menu-item]) {
         display: block; width: 100%; text-align: left; padding: var(--gf-s2) var(--gf-s3);
         font-family: var(--gf-font-mono); font-size: var(--gf-fs-sm); text-transform: uppercase;
@@ -178,7 +179,7 @@ define('gf-toaster', GFToaster)
 let toaster: GFToaster | null = null
 
 function ensureToaster(): GFToaster {
-  if (!toaster || !toaster.isConnected) {
+  if (!toaster?.isConnected) {
     toaster = document.createElement('gf-toaster') as GFToaster
     document.body.appendChild(toaster)
   }
@@ -192,9 +193,7 @@ export interface ToastOptions {
 
 export function toast(message: string, options: ToastOptions = {}): void {
   const host = ensureToaster()
-  window.requestAnimationFrame(() =>
-    host.push(message, options.variant ?? 'default', options.duration ?? 3200),
-  )
+  window.requestAnimationFrame(() => host.push(message, options.variant ?? 'default', options.duration ?? 3200))
 }
 
 declare global {

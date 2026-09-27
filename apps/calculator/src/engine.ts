@@ -203,10 +203,19 @@ export function formatNumber(value: number): string {
   const abs = Math.abs(safe)
 
   if (abs !== 0 && (abs >= 1e12 || abs < 1e-7)) {
-    return safe.toExponential(6).replace(/\.?0+e/, 'e').replace('e+', 'e')
+    return safe
+      .toExponential(6)
+      .replace(/\.?0+e/, 'e')
+      .replace('e+', 'e')
   }
 
-  const fixed = safe.toFixed(12).replace(/\.?0+$/, '')
+  if (safe === 0) return '0'
+  // Cap the decimals to the available double precision (~15 significant
+  // digits) so values like 1234567.89 never render as …889999999898.
+  const magnitude = Math.floor(Math.log10(abs))
+  const integerDigits = magnitude >= 0 ? magnitude + 1 : 0
+  const fractionDigits = Math.min(12, Math.max(0, 15 - integerDigits))
+  const fixed = safe.toFixed(fractionDigits).replace(/\.?0+$/, '')
   if (fixed === '' || fixed === '-') return '0'
 
   const negative = fixed.startsWith('-')

@@ -17,12 +17,17 @@ export function assetUrl(path: string): string {
 const HEXCODE = /^[0-9A-F]{2,6}(-[0-9A-F]{2,6})*$/
 
 /** Transparent 1×1 SVG used when a codepoint is missing or malformed. */
-const BLANK_ICON =
-  'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 1 1%22%3E%3C/svg%3E'
+const BLANK_ICON = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 1 1%22%3E%3C/svg%3E'
 
 export function normalizeHex(hexcode: string): string {
   return hexcode.trim().toUpperCase()
 }
+
+/**
+ * The color set is large, so it is served from a CDN instead of being bundled;
+ * only the black set (used for UI icons) is copied locally at build time.
+ */
+const OPENMOJI_CDN = 'https://cdn.jsdelivr.net/npm/openmoji@17.0.0'
 
 export function iconUrl(codepoint: string): string {
   const hex = normalizeHex(codepoint)
@@ -33,13 +38,13 @@ export function iconUrl(codepoint: string): string {
 export function colorIconUrl(codepoint: string): string {
   const hex = normalizeHex(codepoint)
   if (!HEXCODE.test(hex)) return BLANK_ICON
-  return assetUrl(`openmoji/color/svg/${hex}.svg`)
+  // The desktop build bundles the color set (see scripts/build-icons.mjs).
+  if (import.meta.env.VITE_GF_DESKTOP) return assetUrl(`openmoji/color/svg/${hex}.svg`)
+  return `${OPENMOJI_CDN}/color/svg/${hex}.svg`
 }
 
 export function emojiToHex(emoji: string): string {
-  return [...emoji]
-    .map((char) => (char.codePointAt(0) ?? 0).toString(16).toUpperCase().padStart(4, '0'))
-    .join('-')
+  return [...emoji].map((char) => (char.codePointAt(0) ?? 0).toString(16).toUpperCase().padStart(4, '0')).join('-')
 }
 
 export interface IconMeta {

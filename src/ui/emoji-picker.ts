@@ -1,5 +1,5 @@
-import { GFElement, define } from './base'
-import { loadIconIndex, type IconMeta } from '../core/icons'
+import { type IconMeta, loadIconIndex } from '../core/icons'
+import { define, GFElement } from './base'
 
 const LIMIT = 240
 
@@ -54,9 +54,7 @@ export class GFEmojiPicker extends GFElement {
     if (!grid) return
     grid.innerHTML = ''
     const filtered = this.filter
-      ? this.items.filter((item) =>
-          `${item.name} ${item.tags} ${item.group}`.toLowerCase().includes(this.filter),
-        )
+      ? this.items.filter((item) => `${item.name} ${item.tags} ${item.group}`.toLowerCase().includes(this.filter))
       : this.items
     const slice = filtered.slice(0, LIMIT)
     for (const item of slice) {
@@ -72,7 +70,8 @@ export class GFEmojiPicker extends GFElement {
       button.addEventListener('click', () => this.emit('gf-pick', { hexcode: item.hexcode, name: item.name }))
       grid.append(button)
     }
-    if (count) count.textContent = `${filtered.length} emoji${filtered.length > LIMIT ? ' (showing first ' + LIMIT + ')' : ''}`
+    if (count)
+      count.textContent = `${filtered.length} emoji${filtered.length > LIMIT ? ` (showing first ${LIMIT})` : ''}`
   }
 }
 

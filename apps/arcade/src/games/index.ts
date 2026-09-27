@@ -26,7 +26,13 @@ export const CATALOG: CatalogEntry[] = [
       description: 'Stack falling blocks and clear full lines.',
       help: 'Arrows move, up rotates, X hard-drops.',
       aspect: 0.7,
-      controls: { dpad: 'full', buttons: [{ action: 'a', label: 'Rotate' }, { action: 'b', label: 'Drop' }] },
+      controls: {
+        dpad: 'full',
+        buttons: [
+          { action: 'a', label: 'Rotate' },
+          { action: 'b', label: 'Drop' },
+        ],
+      },
     },
     load: () => import('./tetris').then((mod) => mod.create),
   },
@@ -98,7 +104,7 @@ export const CATALOG: CatalogEntry[] = [
       description: 'Flap through the pipes without crashing.',
       help: 'Tap or press space to flap.',
       aspect: 0.5625,
-      controls: { buttons: [{ action: 'a', label: 'Flap' }] },
+      controls: { dpad: false, buttons: [{ action: 'a', label: 'Flap' }] },
     },
     load: () => import('./flappy').then((mod) => mod.create),
   },

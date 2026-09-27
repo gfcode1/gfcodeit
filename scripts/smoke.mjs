@@ -6,7 +6,7 @@ const executablePath = process.env.CHROME
 const results = []
 function check(name, condition, detail = '') {
   results.push({ name, ok: !!condition, detail })
-  console.log(`${condition ? 'PASS' : 'FAIL'}  ${name}${detail ? ' — ' + detail : ''}`)
+  console.log(`${condition ? 'PASS' : 'FAIL'}  ${name}${detail ? ` — ${detail}` : ''}`)
 }
 
 /** Tiny silent WAV as a data URI, used to exercise the media hub without network. */
@@ -27,7 +27,7 @@ function silentWav() {
   header.writeUInt16LE(8, 34)
   header.write('data', 36)
   header.writeUInt32LE(data.length, 40)
-  return 'data:audio/wav;base64,' + Buffer.concat([header, data]).toString('base64')
+  return `data:audio/wav;base64,${Buffer.concat([header, data]).toString('base64')}`
 }
 
 /** True when the media bar is laid out with a real height inside the viewport. */
@@ -44,7 +44,9 @@ async function mediaBarFit(page) {
   })
 }
 
-const browser = await chromium.launch(executablePath ? { executablePath, args: ['--no-sandbox'] } : { args: ['--no-sandbox'] })
+const browser = await chromium.launch(
+  executablePath ? { executablePath, args: ['--no-sandbox'] } : { args: ['--no-sandbox'] },
+)
 const context = await browser.newContext({ viewport: { width: 420, height: 860 } })
 const page = await context.newPage()
 
@@ -59,6 +61,44 @@ try {
   await page.waitForSelector('.app-card', { timeout: 15000 })
   const cardCount = await page.locator('.app-card').count()
   check('launcher renders app cards', cardCount >= 1, `${cardCount} card(s)`)
+
+  // Single bottom bar: the top bar is gone, the control bar sits directly above
+  // the nav and stays fully inside the viewport.
+  const chrome = await page.evaluate(() => {
+    const control = document.querySelector('#controlbar')
+    const nav = document.querySelector('#nav')
+    const topbar = document.querySelector('#topbar')
+    if (!control || !nav) return { ok: false }
+    const c = control.getBoundingClientRect()
+    const n = nav.getBoundingClientRect()
+    return {
+      ok: true,
+      noTopbar: !topbar,
+      controlAboveNav: Math.abs(c.bottom - n.top) < 2,
+      navAtBottom: Math.abs(n.bottom - window.innerHeight) < 2,
+      barsVisible: c.height > 0 && n.height > 0,
+    }
+  })
+  check('top bar removed', chrome.ok && chrome.noTopbar)
+  check(
+    'control bar sits above the nav at the bottom',
+    chrome.ok && chrome.controlAboveNav && chrome.navAtBottom && chrome.barsVisible,
+    JSON.stringify(chrome),
+  )
+
+  // `innerText` reflects the nav's uppercase text-transform, so normalise.
+  const navLabels = (await page.locator('#nav .nav__item').allInnerTexts()).map((text) => text.trim().toLowerCase())
+  const barLabels = await page
+    .locator('#controlbar .controlbar__actions button:visible')
+    .evaluateAll((els) => els.map((el) => el.getAttribute('aria-label')))
+  check(
+    'activity/settings live in the nav, not the bar, on mobile',
+    navLabels.includes('activity') &&
+      navLabels.includes('settings') &&
+      !barLabels.includes('Activity') &&
+      !barLabels.includes('Settings'),
+    `nav=${navLabels.join(',')} bar=${barLabels.join(',')}`,
+  )
 
   const missing = await page.evaluate(() =>
     [
@@ -104,7 +144,7 @@ try {
   check('note created and rendered', true)
 
   // Badge reflects the app-reported count once back on the launcher
-  await page.locator('#topbar').getByLabel('Back').click()
+  await page.locator('#controlbar').getByLabel('Back').click()
   await page.waitForSelector('.app-card', { timeout: 10000 })
   const badge = page.locator('.app-card').filter({ hasText: 'Notes' }).first().locator('.app-card__badge')
   const badgeText = (await badge.textContent())?.trim()
@@ -126,7 +166,7 @@ try {
 
   // Theme changes propagate into the open app
   const themeBefore = await frame2.locator('html').getAttribute('data-theme')
-  await page.locator('#topbar').getByLabel('Command palette').click()
+  await page.locator('#controlbar').getByLabel('Command palette').click()
   await page.locator('.palette gf-input input').fill('Toggle light')
   await page.keyboard.press('Enter')
   await page.waitForTimeout(500)
@@ -153,7 +193,7 @@ try {
   // Command palette
   await page.goto(BASE, { waitUntil: 'networkidle' })
   await page.waitForSelector('.app-card', { timeout: 15000 })
-  await page.locator('#topbar').getByLabel('Command palette').click()
+  await page.locator('#controlbar').getByLabel('Command palette').click()
   await page.locator('.palette').waitFor()
   check('command palette opens', true)
   await page.keyboard.press('Escape')
@@ -213,7 +253,7 @@ try {
   await td.locator('.todo-filters gf-chip', { hasText: 'All' }).click()
   await page.waitForTimeout(200)
 
-  await page.locator('#topbar').getByLabel('Back').click()
+  await page.locator('#controlbar').getByLabel('Back').click()
   await page.waitForSelector('.app-card', { timeout: 10000 })
   const todoBadge = (await todoCard.locator('.app-card__badge').textContent())?.trim()
   check('todo badge shows active count', todoBadge === '1', `badge="${todoBadge}"`)
@@ -278,10 +318,7 @@ try {
 
   await cf.getByText('New event').click()
   await cf.locator('gf-modal[open]').waitFor()
-  const remindFields = await cf
-    .locator('gf-modal[open] gf-form-field')
-    .filter({ hasText: 'Remind me' })
-    .count()
+  const remindFields = await cf.locator('gf-modal[open] gf-form-field').filter({ hasText: 'Remind me' }).count()
   check('Calendar exposes a reminder control', remindFields > 0)
   await cf.locator('gf-modal[open] gf-button', { hasText: 'Cancel' }).click()
 
@@ -325,9 +362,7 @@ try {
   // Radio app: Radio Browser catalog, now-playing bar and favorites
   await page.goto(BASE, { waitUntil: 'networkidle' })
   await page.waitForSelector('.app-card', { timeout: 15000 })
-  const radioCard = page
-    .locator('.app-card', { has: page.locator('.app-card__name', { hasText: /^Radio$/ }) })
-    .first()
+  const radioCard = page.locator('.app-card', { has: page.locator('.app-card__name', { hasText: /^Radio$/ }) }).first()
   check('Radio app discovered', (await radioCard.count()) > 0)
   await radioCard.hover()
   await radioCard.getByText('Open').click()
@@ -357,8 +392,7 @@ try {
   await cc.locator('.calc-keys').waitFor({ timeout: 15000 })
 
   const tapKey = (label) => cc.locator('.calc-keys gf-button').filter({ hasText: label }).first().click()
-  const tapMemory = (label) =>
-    cc.locator('.calc-memory gf-button').filter({ hasText: label }).first().click()
+  const tapMemory = (label) => cc.locator('.calc-memory gf-button').filter({ hasText: label }).first().click()
   const calcResult = async () => ((await cc.locator('.calc-display__result').textContent()) ?? '').trim()
 
   for (const label of ['1', '2', '+', '3', '4']) await tapKey(label)
@@ -416,9 +450,7 @@ try {
   // News app: bundled awesome-rss-feeds catalog, adding feeds, OPML export
   await page.goto(BASE, { waitUntil: 'networkidle' })
   await page.waitForSelector('.app-card', { timeout: 15000 })
-  const newsCard = page
-    .locator('.app-card', { has: page.locator('.app-card__name', { hasText: /^News$/ }) })
-    .first()
+  const newsCard = page.locator('.app-card', { has: page.locator('.app-card__name', { hasText: /^News$/ }) }).first()
   check('News app discovered', (await newsCard.count()) > 0)
   await newsCard.hover()
   await newsCard.getByText('Open').click()
@@ -476,6 +508,14 @@ try {
     ((await page.locator('.media-bar__title').textContent()) ?? '').trim() === 'Soundscape',
     await page.locator('.media-bar__title').textContent(),
   )
+  check(
+    'media playback is hosted inside the single control bar',
+    await page.evaluate(() => {
+      const bar = document.querySelector('#controlbar')
+      const media = document.querySelector('#media-bar')
+      return !!bar && !!media && bar.contains(media) && bar.dataset.media === 'on'
+    }),
+  )
 
   await sc.locator('.sound-card').nth(1).click()
   await page.waitForTimeout(500)
@@ -485,7 +525,7 @@ try {
     await page.locator('.media-bar__meta').textContent(),
   )
 
-  await page.locator('#topbar').getByLabel('Back').click()
+  await page.locator('#controlbar').getByLabel('Back').click()
   await page.waitForSelector('.app-card', { timeout: 10000 })
   check('audio keeps playing on the launcher', await page.locator('#media-bar').isVisible())
 
@@ -502,6 +542,31 @@ try {
     mobileFit.inside && desktopFit.inside,
     `mobile=${JSON.stringify(mobileFit)} desktop=${JSON.stringify(desktopFit)}`,
   )
+
+  // Compact mode must not overflow the bar on a narrow phone.
+  await page.setViewportSize({ width: 360, height: 900 })
+  await page.waitForTimeout(250)
+  const narrowFit = await mediaBarFit(page)
+  const narrowOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+  check(
+    'compact control bar fits a 360px phone without overflow',
+    narrowFit.inside && narrowOverflow <= 0,
+    `fit=${JSON.stringify(narrowFit)} overflow=${narrowOverflow}px`,
+  )
+  await page.setViewportSize({ width: 420, height: 860 })
+  await page.waitForTimeout(200)
+
+  // On desktop the nav is hidden, so activity/settings must resurface in the bar.
+  await page.setViewportSize({ width: 1200, height: 800 })
+  await page.waitForTimeout(200)
+  check(
+    'activity/settings surface in the bar on desktop',
+    (await page.locator('#nav').isHidden()) &&
+      (await page.locator('#controlbar').getByLabel('Activity').isVisible()) &&
+      (await page.locator('#controlbar').getByLabel('Settings').isVisible()),
+  )
+  await page.setViewportSize({ width: 420, height: 860 })
+  await page.waitForTimeout(200)
 
   // Opening a non-media app unmounts the Soundscape iframe; audio must persist.
   const todoMediaCard = page.locator('.app-card').filter({ hasText: 'Todo' }).first()
@@ -521,16 +586,23 @@ try {
   const appDesktopFit = await mediaBarFit(page)
   await page.setViewportSize({ width: 420, height: 860 })
   await page.waitForTimeout(250)
-  check('media bar stays inside the viewport inside apps (desktop)', appDesktopFit.inside, JSON.stringify(appDesktopFit))
+  check(
+    'media bar stays inside the viewport inside apps (desktop)',
+    appDesktopFit.inside,
+    JSON.stringify(appDesktopFit),
+  )
 
   const todoMediaFrame = page.frames().find((frame) => frame.url().includes('/apps/todo/'))
   const denied = await todoMediaFrame.evaluate(() =>
-    window.GF.media.list().then(() => 'allowed').catch((error) => error.code),
+    window.GF.media
+      .list()
+      .then(() => 'allowed')
+      .catch((error) => error.code),
   )
   check('media permission is enforced per app', denied === 'E_PERMISSION', String(denied))
 
   // Exclusive playback: starting a stream in Radio stops Soundscape.
-  await page.locator('#topbar').getByLabel('Back').click()
+  await page.locator('#controlbar').getByLabel('Back').click()
   await page.waitForSelector('.app-card', { timeout: 10000 })
   const radioMediaCard = page
     .locator('.app-card', { has: page.locator('.app-card__name', { hasText: /^Radio$/ }) })
@@ -555,9 +627,22 @@ try {
     await page.locator('.media-bar__title').textContent(),
   )
 
+  // Compact mode: the overflow menu carries volume + open-app on phones.
+  await page.locator('.media-bar__more button[aria-label="More controls"]').click()
+  await page.waitForTimeout(200)
+  check(
+    'compact media menu exposes volume and open-app',
+    (await page.locator('.media-bar__volume-menu').isVisible()) &&
+      (await page.locator('.media-bar__more').getByText('Open app').isVisible()),
+  )
+  await page.mouse.click(5, 5)
+  await page.waitForTimeout(200)
+
   await page.locator('.media-bar__controls button[aria-label="Pause"]').click()
   await page.waitForTimeout(400)
-  const pausedStatus = await radioMediaFrame.evaluate(() => window.GF.media.list().then((sources) => sources[0]?.status))
+  const pausedStatus = await radioMediaFrame.evaluate(() =>
+    window.GF.media.list().then((sources) => sources[0]?.status),
+  )
   check('global media bar can pause playback', pausedStatus === 'paused', String(pausedStatus))
 
   const badMedia = await radioMediaFrame.evaluate(() =>
@@ -569,7 +654,10 @@ try {
   check('media rejects non-audio URL schemes', badMedia === 'E_PARAM', String(badMedia))
 
   const badRpc = await radioMediaFrame.evaluate(() =>
-    window.GF.ui.confirm(123).then(() => 'ok').catch((error) => error.code),
+    window.GF.ui
+      .confirm(123)
+      .then(() => 'ok')
+      .catch((error) => error.code),
   )
   check('RPC rejects malformed params', badRpc === 'E_PARAM', String(badRpc))
 
@@ -674,8 +762,7 @@ try {
   )
 
   const shellCsp = await page.evaluate(
-    () =>
-      document.querySelector('meta[http-equiv="Content-Security-Policy"]')?.getAttribute('content') ?? '',
+    () => document.querySelector('meta[http-equiv="Content-Security-Policy"]')?.getAttribute('content') ?? '',
   )
   check('production shell ships a CSP', /object-src 'none'/.test(shellCsp), shellCsp.slice(0, 48))
 

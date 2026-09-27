@@ -6,16 +6,7 @@ const THEME_KEY = 'gf:theme'
 const PROFILES_STORE = 'profiles'
 const MAX_RECENT = 6
 
-export const ACCENTS = [
-  '#ff4d00',
-  '#0057ff',
-  '#00a06b',
-  '#d4007a',
-  '#7a00ff',
-  '#b58a00',
-  '#008b8b',
-  '#c02626',
-] as const
+export const ACCENTS = ['#ff4d00', '#0057ff', '#00a06b', '#d4007a', '#7a00ff', '#b58a00', '#008b8b', '#c02626'] as const
 
 export function pickAccent(seed: string): string {
   let hash = 0
@@ -141,10 +132,10 @@ export async function deleteProfile(id: string): Promise<void> {
 
 export async function addRecent(appId: string): Promise<void> {
   const profile = await getCurrentProfile()
-  const recent: RecentEntry[] = [
-    { appId, at: Date.now() },
-    ...profile.recent.filter((r) => r.appId !== appId),
-  ].slice(0, MAX_RECENT)
+  const recent: RecentEntry[] = [{ appId, at: Date.now() }, ...profile.recent.filter((r) => r.appId !== appId)].slice(
+    0,
+    MAX_RECENT,
+  )
   await saveProfile({ ...profile, recent, lastUsedAt: Date.now() })
 }
 

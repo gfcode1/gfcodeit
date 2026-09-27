@@ -5,11 +5,11 @@ import {
   fetchStations,
   fetchTags,
   registerClick,
-  voteStation,
   type Station,
   type StationOrder,
+  voteStation,
 } from './api'
-import { RadioPlayer, type PlayerState } from './player'
+import { type PlayerState, RadioPlayer } from './player'
 
 const FAVORITES_KEY = 'favorites'
 const RECENT_KEY = 'recent'
@@ -241,10 +241,7 @@ async function start(): Promise<void> {
       )
       countrySelect = rebuildSelect(
         countrySelect,
-        [
-          option('', 'All countries'),
-          ...countries.slice(0, 120).map((item) => option(item.code, item.name)),
-        ],
+        [option('', 'All countries'), ...countries.slice(0, 120).map((item) => option(item.code, item.name))],
         country,
         (value) => {
           country = value
@@ -402,9 +399,7 @@ async function start(): Promise<void> {
       empty.setAttribute('title', view === 'favorites' ? 'No favorites yet' : 'No recent stations')
       empty.setAttribute(
         'text',
-        view === 'favorites'
-          ? 'Tap the star on a station to keep it here.'
-          : 'Stations you play will show up here.',
+        view === 'favorites' ? 'Tap the star on a station to keep it here.' : 'Stations you play will show up here.',
       )
       content.append(empty)
       return
@@ -498,13 +493,9 @@ async function start(): Promise<void> {
       fillArt(npArt, station)
     }
     npTitle.textContent = station.name
-    npMeta.textContent =
-      [...station.tags.slice(0, 2), station.country].filter(Boolean).join(' · ') || station.language
-    npCodec.textContent = [station.codec, station.bitrate ? `${station.bitrate}k` : '']
-      .filter(Boolean)
-      .join(' · ')
-    playButton.textContent =
-      state.status === 'playing' ? 'Pause' : state.status === 'loading' ? 'Connecting…' : 'Play'
+    npMeta.textContent = [...station.tags.slice(0, 2), station.country].filter(Boolean).join(' · ') || station.language
+    npCodec.textContent = [station.codec, station.bitrate ? `${station.bitrate}k` : ''].filter(Boolean).join(' · ')
+    playButton.textContent = state.status === 'playing' ? 'Pause' : state.status === 'loading' ? 'Connecting…' : 'Play'
     playButton.toggleAttribute('disabled', state.status === 'loading')
     voteButton.textContent = voted.includes(station.uuid) ? 'Voted ✓' : 'Vote'
     voteButton.toggleAttribute('disabled', voted.includes(station.uuid))

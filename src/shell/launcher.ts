@@ -1,5 +1,5 @@
-import type { AppManifest, Profile } from '../core/types'
 import { apps as allApps } from '../core/registry'
+import type { AppManifest, Profile } from '../core/types'
 
 export interface LauncherOptions {
   profile: Profile
@@ -89,7 +89,7 @@ export function createLauncher(options: LauncherOptions): HTMLElement {
   const searchLabel = document.createElement('span')
   searchLabel.textContent = 'Search apps…'
   const searchKbd = document.createElement('span')
-  searchKbd.className = 'topbar__kbd'
+  searchKbd.className = 'controlbar__kbd'
   searchKbd.textContent = '⌘K'
   search.append(searchIcon, searchLabel, searchKbd)
   search.addEventListener('click', () => options.onSearch())
@@ -120,7 +120,7 @@ export function createLauncher(options: LauncherOptions): HTMLElement {
       if (draggable) {
         card.draggable = true
         card.addEventListener('dragstart', (event) => {
-          (event as DragEvent).dataTransfer?.setData('text/plain', app.id)
+          ;(event as DragEvent).dataTransfer?.setData('text/plain', app.id)
           card.classList.add('is-dragging')
         })
         card.addEventListener('dragend', () => card.classList.remove('is-dragging'))

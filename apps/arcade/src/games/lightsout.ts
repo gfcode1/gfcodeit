@@ -1,5 +1,5 @@
-import type { GameHooks, GameInstance, PointerInput } from '../engine/types'
 import { randInt } from '../engine/format'
+import type { GameHooks, GameInstance, PointerInput } from '../engine/types'
 
 const SIZE = 5
 
@@ -105,7 +105,12 @@ export function create(hooks: GameHooks): GameInstance {
 
       ctx.strokeStyle = '#4dabf7'
       ctx.lineWidth = 2
-      ctx.strokeRect(offsetX + gap + cursor.x * (cell + gap) - 1, offsetY + gap + cursor.y * (cell + gap) - 1, cell + 2, cell + 2)
+      ctx.strokeRect(
+        offsetX + gap + cursor.x * (cell + gap) - 1,
+        offsetY + gap + cursor.y * (cell + gap) - 1,
+        cell + 2,
+        cell + 2,
+      )
       ctx.lineWidth = 1
     },
   }

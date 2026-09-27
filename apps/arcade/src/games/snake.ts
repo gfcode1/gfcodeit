@@ -1,5 +1,5 @@
-import type { GameHooks, GameInstance } from '../engine/types'
 import { randInt } from '../engine/format'
+import type { GameHooks, GameInstance } from '../engine/types'
 
 const COLS = 20
 const ROWS = 20
@@ -13,7 +13,7 @@ interface Cell {
 }
 
 export function create(hooks: GameHooks): GameInstance {
-  let snake: Cell[] = [
+  const snake: Cell[] = [
     { x: 10, y: 10 },
     { x: 9, y: 10 },
     { x: 8, y: 10 },

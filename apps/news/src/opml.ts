@@ -15,7 +15,12 @@ function escapeXml(value: string): string {
 export function parseOpml(xml: string): OpmlFeed[] {
   const doc = new DOMParser().parseFromString(xml, 'application/xml')
   if (doc.getElementsByTagName('parsererror').length > 0) throw new Error('Invalid OPML file')
-  const outlines = Array.from(doc.getElementsByTagNameNS('*', 'outline'))
+  // Match by local name so both plain and namespaced outlines are found; a
+  // namespaced lookup (`getElementsByTagNameNS('*', …)`) is unreliable across
+  // DOM implementations.
+  const outlines = Array.from(doc.getElementsByTagName('*')).filter(
+    (element) => (element.localName || element.nodeName).toLowerCase() === 'outline',
+  )
   const feeds: OpmlFeed[] = []
   const seen = new Set<string>()
   for (const outline of outlines) {

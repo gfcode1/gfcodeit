@@ -32,9 +32,7 @@ export class SoundEngine {
       .then((sources) => {
         if (sources.length === 0) return
         for (const source of sources) this.volumes.set(source.id, source.volume)
-        this.paused = !sources.some(
-          (source) => source.status === 'playing' || source.status === 'loading',
-        )
+        this.paused = !sources.some((source) => source.status === 'playing' || source.status === 'loading')
         this.onChange()
       })
       .catch(() => undefined)

@@ -1,11 +1,7 @@
 import { getStore, reqAsPromise } from './idb'
 import type { StorageScope } from './types'
 
-export type UpgradeFn = (
-  from: number,
-  to: number,
-  ctx: { appId: string; scope: StorageScope },
-) => void | Promise<void>
+export type UpgradeFn = (from: number, to: number, ctx: { appId: string; scope: StorageScope }) => void | Promise<void>
 
 export interface StorageHandle {
   readonly scope: StorageScope

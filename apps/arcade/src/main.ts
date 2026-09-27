@@ -2,11 +2,11 @@ import './styles.css'
 import type { GFApi } from '../../../src/core/sdk'
 import { createSfx, type Sfx } from './engine/audio'
 import { fitCanvas, observeResize } from './engine/canvas'
-import { KEY_ACTIONS, PAUSE_KEYS, detectSwipe, dpadActions } from './engine/input'
-import { createLoop, type Loop } from './engine/loop'
-import type { GameHooks, GameInstance, PointerInput } from './engine/types'
 import { pad } from './engine/format'
-import { loadData, normalizeData, saveData, STORAGE_KEY, type ArcadeData } from './engine/storage'
+import { detectSwipe, dpadActions, KEY_ACTIONS, OPPOSITE_ACTION, PAUSE_KEYS } from './engine/input'
+import { createLoop, type Loop } from './engine/loop'
+import { type ArcadeData, loadData, normalizeData, STORAGE_KEY, saveData } from './engine/storage'
+import type { GameHooks, GameInstance, PointerInput } from './engine/types'
 import { CATALOG, type CatalogEntry } from './games'
 
 type State = 'ready' | 'playing' | 'paused' | 'over'
@@ -113,6 +113,7 @@ async function start(): Promise<void> {
   const ctx = canvas.getContext('2d')
 
   let session: Session | null = null
+  let sessionToken = 0
   let state: State = 'ready'
   let pressed = new Set<string>()
   let swipeStart: { x: number; y: number } | null = null
@@ -187,7 +188,7 @@ async function start(): Promise<void> {
       again.setAttribute('variant', 'primary')
       again.textContent = 'Play again'
       again.addEventListener('click', () => {
-        if (current) void beginSession(current.entry).then(startRound)
+        if (current) void beginSession(current.entry, true)
       })
       const back = el('gf-button')
       back.setAttribute('variant', 'ghost')
@@ -256,10 +257,13 @@ async function start(): Promise<void> {
   function pressAction(action: string): void {
     const current = session
     if (!current) return
-    pressed.forEach((held) => {
-      if (held !== action) current.instance.onKey?.(held, false)
-    })
-    pressed = new Set([action])
+    const opposite = OPPOSITE_ACTION[action]
+    if (opposite && pressed.has(opposite)) {
+      pressed.delete(opposite)
+      current.instance.onKey?.(opposite, false)
+    }
+    if (pressed.has(action)) return
+    pressed.add(action)
     current.instance.onKey?.(action, true)
   }
 
@@ -311,9 +315,11 @@ async function start(): Promise<void> {
     if (isRecord && value > 0) gf.ui.toast(`New best in ${meta.name}!`, { variant: 'ok' })
   }
 
-  async function beginSession(entry: CatalogEntry): Promise<void> {
+  async function beginSession(entry: CatalogEntry, autoStart = false): Promise<void> {
+    const token = (sessionToken += 1)
     teardownSession()
     const create = await entry.load()
+    if (token !== sessionToken) return
     const hooks: GameHooks = {
       audio: sfx,
       best: data.best[entry.meta.id] ?? 0,
@@ -351,7 +357,8 @@ async function start(): Promise<void> {
     stopResize = observeResize(stage, fit)
     fit()
     updateHud()
-    showOverlay('ready')
+    if (autoStart) startRound()
+    else showOverlay('ready')
   }
 
   function teardownSession(): void {
@@ -397,6 +404,7 @@ async function start(): Promise<void> {
   }
 
   function closeGame(): void {
+    sessionToken += 1
     teardownSession()
     menu.hidden = false
     gameView.hidden = true
@@ -511,11 +519,17 @@ async function start(): Promise<void> {
 
   window.addEventListener('keydown', (event) => {
     sfx.unlock()
+    if (event.repeat) return
     if (!session) return
     if (state === 'ready') {
-      if (KEY_ACTIONS[event.code] || event.code === 'Space' || event.code === 'Enter') {
+      const started = KEY_ACTIONS[event.code]
+      if (started || event.code === 'Space' || event.code === 'Enter') {
         event.preventDefault()
         startRound()
+        if (started && ['up', 'down', 'left', 'right'].includes(started) && session) {
+          pressed.add(started)
+          session.instance.onKey?.(started, true)
+        }
       }
       return
     }
@@ -523,7 +537,7 @@ async function start(): Promise<void> {
       if (event.code === 'Space' || event.code === 'Enter') {
         event.preventDefault()
         const current = session
-        if (current) void beginSession(current.entry).then(startRound)
+        if (current) void beginSession(current.entry, true)
       }
       return
     }

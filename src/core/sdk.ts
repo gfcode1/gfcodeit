@@ -1,14 +1,14 @@
-import { createStorage, type StorageHandle, type UpgradeFn } from './storage'
-import { createCache, type GFCacheApi } from './cache'
-import { createMediaHub, type MediaHub } from './media'
+import { type ToastOptions, toast } from '../ui/overlay'
 import { BridgeClient } from './bridge'
 import { BridgeError, FRAMEWORK_SDK_VERSION } from './bridge-protocol'
 import { bus } from './bus'
-import { applyTheme, resolveTheme } from './theme'
-import { colorIconUrl, iconUrl, loadIconIndex, setAssetBase as setIconsBase, type IconMeta } from './icons'
-import { getCurrentProfile, listProfiles, updateProfile } from './profile'
+import { createCache, type GFCacheApi } from './cache'
+import { colorIconUrl, type IconMeta, iconUrl, loadIconIndex, setAssetBase as setIconsBase } from './icons'
 import { createLocalScheduler } from './local-scheduler'
-import { toast, type ToastOptions } from '../ui/overlay'
+import { createMediaHub, type MediaHub } from './media'
+import { getCurrentProfile, listProfiles, updateProfile } from './profile'
+import { createStorage, type StorageHandle, type UpgradeFn } from './storage'
+import { applyTheme, resolveTheme } from './theme'
 import type {
   AppManifest,
   MediaCommand,
@@ -219,7 +219,7 @@ export async function initSDK(options: InitOptions = {}): Promise<GFApi> {
   let themeMode: ThemeMode = 'system'
   let embedded = false
 
-  if (client && client.embedded) {
+  if (client?.embedded) {
     try {
       const welcome = await client.connect()
       embedded = true

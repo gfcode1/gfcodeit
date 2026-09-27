@@ -1,6 +1,6 @@
 import { BridgeHost, type ThemeState } from '../core/bridge'
-import type { AppManifest, BridgeMethod, Profile, ScheduleItem } from '../core/types'
 import { BACKGROUND_TIMEOUT_MS, HANDSHAKE_TIMEOUT_MS, memoryPressure } from '../core/lifecycle'
+import type { AppManifest, BridgeMethod, Profile, ScheduleItem } from '../core/types'
 
 export interface AppHostDeps {
   getTheme: () => ThemeState

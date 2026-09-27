@@ -1,13 +1,13 @@
 import {
   BRIDGE_PROTOCOL_VERSION,
   BridgeError,
-  FRAMEWORK_SDK_VERSION,
-  RPC_TIMEOUT_MS,
-  rangeSatisfies,
   type BridgeMessage,
+  FRAMEWORK_SDK_VERSION,
   type HelloMessage,
+  RPC_TIMEOUT_MS,
   type RpcRequest,
   type RpcResult,
+  rangeSatisfies,
   type WelcomeMessage,
 } from './bridge-protocol'
 import type { AppManifest, BridgeMethod, Permission, Profile, ThemeMode } from './types'
@@ -73,7 +73,7 @@ export class BridgeHost {
   attach(): void {
     const listener = (event: MessageEvent) => {
       const data = event.data as HelloMessage | undefined
-      if (!data || data.t !== 'gf:hello') return
+      if (data?.t !== 'gf:hello') return
       if (event.source !== this.options.iframe.contentWindow) return
       if (event.origin !== window.location.origin) return
       if (data.token !== this.options.token) return

@@ -35,7 +35,7 @@
   color: var(--gf-accent-ink);
   font-family: var(--gf-font-mono);
   font-size: var(--gf-fs-xs);
-  letter-spacing: .12em;
+  letter-spacing: 0.12em;
 }
 
 .calc-display__memory[hidden] {
@@ -54,7 +54,7 @@
   font-family: var(--gf-font-mono);
   font-size: var(--gf-fs-2xl);
   font-weight: 700;
-  letter-spacing: .02em;
+  letter-spacing: 0.02em;
   overflow-wrap: anywhere;
   cursor: pointer;
 }

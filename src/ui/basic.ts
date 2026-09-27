@@ -1,4 +1,4 @@
-import { GFElement, define } from './base'
+import { define, GFElement } from './base'
 
 const SHARED = `
   :host { display: block; color: var(--gf-ink); font-family: var(--gf-font-sans); }
@@ -148,7 +148,9 @@ export class GFAvatar extends GFElement {
   }
 
   protected override template(): string {
-    return '<span class="avatar" part="avatar"><gf-icon codepoint="1F464" size="60%"></gf-icon></span>'
+    // Color variant: avatars can be any emoji the picker offers, which the
+    // locally-subsetted black set does not cover.
+    return '<span class="avatar" part="avatar"><gf-icon variant="color" codepoint="1F464" size="60%"></gf-icon></span>'
   }
 
   protected override mounted(): void {

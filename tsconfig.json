@@ -17,5 +17,14 @@
     "noEmit": true,
     "types": ["node", "vite/client", "vite-plugin-pwa/client"]
   },
-  "include": ["src", "apps", "framework", "types", "vite.config.ts", "vite.framework.config.ts"]
+  "include": [
+    "src",
+    "apps",
+    "framework",
+    "types",
+    "tests",
+    "vite.config.ts",
+    "vite.framework.config.ts",
+    "vitest.config.ts"
+  ]
 }

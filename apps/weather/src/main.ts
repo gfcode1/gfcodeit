@@ -4,14 +4,14 @@ import {
   clockLabel,
   dayLabel,
   describeCode,
+  type Forecast,
   fetchForecast,
   formatPrecip,
   formatTemp,
   formatWind,
+  type GeoResult,
   geocode,
   hourLabel,
-  type Forecast,
-  type GeoResult,
   type Location,
   type Units,
 } from './weather'
@@ -70,7 +70,10 @@ async function start(): Promise<void> {
   locateButton.title = 'Use current location'
   const unitsSelect = el('gf-select')
   unitsSelect.className = 'units-select'
-  for (const [value, label] of [['metric', '°C km/h'], ['imperial', '°F mph']] as const) {
+  for (const [value, label] of [
+    ['metric', '°C km/h'],
+    ['imperial', '°F mph'],
+  ] as const) {
     const option = document.createElement('option')
     option.value = value
     option.textContent = label

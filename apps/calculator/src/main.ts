@@ -71,21 +71,14 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string): HTMLEl
 function isHistoryEntry(value: unknown): value is HistoryEntry {
   if (!value || typeof value !== 'object') return false
   const entry = value as Partial<HistoryEntry>
-  return (
-    typeof entry.expression === 'string' &&
-    typeof entry.result === 'string' &&
-    typeof entry.at === 'number'
-  )
+  return typeof entry.expression === 'string' && typeof entry.result === 'string' && typeof entry.at === 'number'
 }
 
 function normalize(input: unknown): CalcData {
   if (!input || typeof input !== 'object') return { history: [], memory: 0 }
   const source = input as Partial<CalcData>
-  const history = Array.isArray(source.history)
-    ? source.history.filter(isHistoryEntry).slice(0, HISTORY_LIMIT)
-    : []
-  const memory =
-    typeof source.memory === 'number' && Number.isFinite(source.memory) ? source.memory : 0
+  const history = Array.isArray(source.history) ? source.history.filter(isHistoryEntry).slice(0, HISTORY_LIMIT) : []
+  const memory = typeof source.memory === 'number' && Number.isFinite(source.memory) ? source.memory : 0
   return { history, memory }
 }
 
@@ -186,10 +179,7 @@ async function start(): Promise<void> {
     }
     memoryFlag.hidden = data.memory === 0
     const memoryNote = data.memory === 0 ? '' : ` · memory ${formatNumber(data.memory)}`
-    header.setAttribute(
-      'subtitle',
-      `${profile.name} · ${data.history.length} in history${memoryNote}`,
-    )
+    header.setAttribute('subtitle', `${profile.name} · ${data.history.length} in history${memoryNote}`)
   }
 
   function beginFreshInput(): void {
@@ -237,10 +227,7 @@ async function start(): Promise<void> {
       return
     }
     const formatted = formatNumber(result.value)
-    data.history = [
-      { expression, result: formatted, at: Date.now() },
-      ...data.history,
-    ].slice(0, HISTORY_LIMIT)
+    data.history = [{ expression, result: formatted, at: Date.now() }, ...data.history].slice(0, HISTORY_LIMIT)
     lastResult = formatted
     expression = rawNumber(result.value)
     evaluated = true

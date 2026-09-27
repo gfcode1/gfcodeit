@@ -1,7 +1,7 @@
-import type { Panel, PanelContext, TimerState } from './types'
 import type { ScheduleItem } from '../../../src/core/types'
 import { el } from './dom'
 import { formatDuration } from './format'
+import type { Panel, PanelContext, TimerState } from './types'
 
 const KEY = 'timer'
 const PRESETS_MIN = [1, 3, 5, 10, 15, 30]
@@ -155,7 +155,10 @@ export async function createTimerPanel(ctx: PanelContext): Promise<Panel> {
         button('Reset', () => void reset(), 'ghost'),
       )
     } else if (state.status === 'running') {
-      actions.append(button('Pause', () => void pause()), button('Reset', () => void reset(), 'ghost'))
+      actions.append(
+        button('Pause', () => void pause()),
+        button('Reset', () => void reset(), 'ghost'),
+      )
     } else if (state.status === 'paused') {
       actions.append(
         button('Resume', () => void run(state.remainingMs), 'primary'),

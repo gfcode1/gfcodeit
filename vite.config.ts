@@ -1,7 +1,7 @@
+import { copyFileSync, existsSync, mkdirSync, readdirSync } from 'node:fs'
+import { join, resolve } from 'node:path'
 import { defineConfig, type Plugin } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
-import { resolve, join } from 'node:path'
-import { readdirSync, existsSync, mkdirSync, copyFileSync } from 'node:fs'
 
 const root = __dirname
 const appsDir = resolve(root, 'apps')
@@ -69,73 +69,85 @@ function injectCsp(): Plugin {
   }
 }
 
-const BASE = '/gfcodeit/'
+// The web/PWA build is served from a GitHub Pages sub-path; the Electron build
+// runs from a protocol root (app://gfcodeit/) and must not ship a service worker.
+const DESKTOP = Boolean(process.env.VITE_GF_DESKTOP)
+const BASE = DESKTOP ? '/' : '/gfcodeit/'
+
+const pwa = VitePWA({
+  registerType: 'prompt',
+  injectRegister: null,
+  includeAssets: ['favicon.svg', 'icons/*.png'],
+  manifest: {
+    name: 'GFCode',
+    short_name: 'GFCode',
+    description: 'A collection of mini apps in one static framework.',
+    start_url: '.',
+    scope: '.',
+    display: 'standalone',
+    background_color: '#f4f4ef',
+    theme_color: '#f4f4ef',
+    icons: [
+      { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+      { src: 'icons/maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+    ],
+  },
+  workbox: {
+    globPatterns: ['**/*.{js,css,html,svg}'],
+    // Precache the shell + framework; apps (HTML and their assets) and
+    // OpenMoji are cached on demand at first use.
+    globIgnores: ['apps/**', 'assets/app-*', 'openmoji/**'],
+    navigateFallback: `${BASE}index.html`,
+    navigateFallbackDenylist: [/\/apps\//],
+    cleanupOutdatedCaches: true,
+    runtimeCaching: [
+      {
+        urlPattern: /\/gfcodeit\/assets\//,
+        handler: 'CacheFirst',
+        options: {
+          cacheName: 'gf-assets',
+          expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 },
+        },
+      },
+      {
+        urlPattern: /\/gfcodeit\/apps\//,
+        handler: 'CacheFirst',
+        options: {
+          cacheName: 'gf-apps',
+          // App URLs carry a per-open ?gf-token= query; ignore it so the
+          // cached app shell is reused offline.
+          matchOptions: { ignoreSearch: true },
+          expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 },
+        },
+      },
+      {
+        urlPattern: /\/gfcodeit\/openmoji\//,
+        handler: 'CacheFirst',
+        options: {
+          cacheName: 'gf-openmoji',
+          expiration: { maxEntries: 5000, maxAgeSeconds: 60 * 60 * 24 * 365 },
+        },
+      },
+      {
+        // The color emoji set is served from a CDN; cache it so avatars and
+        // the emoji picker keep working offline after the first view.
+        urlPattern: /^https:\/\/cdn\.jsdelivr\.net\/npm\/openmoji@/,
+        handler: 'CacheFirst',
+        options: {
+          cacheName: 'gf-openmoji-cdn',
+          expiration: { maxEntries: 1000, maxAgeSeconds: 60 * 60 * 24 * 365 },
+          cacheableResponse: { statuses: [0, 200] },
+        },
+      },
+    ],
+  },
+  devOptions: { enabled: false },
+})
 
 export default defineConfig({
   base: BASE,
-  plugins: [
-    copyAppManifests(),
-    injectCsp(),
-    VitePWA({
-      registerType: 'prompt',
-      injectRegister: null,
-      includeAssets: ['favicon.svg', 'icons/*.png'],
-      manifest: {
-        name: 'GFCode',
-        short_name: 'GFCode',
-        description: 'A collection of mini apps in one static framework.',
-        start_url: '.',
-        scope: '.',
-        display: 'standalone',
-        background_color: '#f4f4ef',
-        theme_color: '#f4f4ef',
-        icons: [
-          { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' },
-          { src: 'icons/maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
-        ],
-      },
-      workbox: {
-        globPatterns: ['**/*.{js,css,html,svg}'],
-        // Precache the shell + framework; apps (HTML and their assets) and
-        // OpenMoji are cached on demand at first use.
-        globIgnores: ['apps/**', 'assets/app-*', 'openmoji/**'],
-        navigateFallback: `${BASE}index.html`,
-        navigateFallbackDenylist: [/\/apps\//],
-        cleanupOutdatedCaches: true,
-        runtimeCaching: [
-          {
-            urlPattern: /\/gfcodeit\/assets\//,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'gf-assets',
-              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 },
-            },
-          },
-          {
-            urlPattern: /\/gfcodeit\/apps\//,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'gf-apps',
-              // App URLs carry a per-open ?gf-token= query; ignore it so the
-              // cached app shell is reused offline.
-              matchOptions: { ignoreSearch: true },
-              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 },
-            },
-          },
-          {
-            urlPattern: /\/gfcodeit\/openmoji\//,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'gf-openmoji',
-              expiration: { maxEntries: 5000, maxAgeSeconds: 60 * 60 * 24 * 365 },
-            },
-          },
-        ],
-      },
-      devOptions: { enabled: false },
-    }),
-  ],
+  plugins: [copyAppManifests(), injectCsp(), ...(DESKTOP ? [] : [pwa])],
   build: {
     outDir: 'dist',
     emptyOutDir: true,

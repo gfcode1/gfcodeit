@@ -56,7 +56,7 @@ function buildLanes(): Lane[] {
 }
 
 export function create(hooks: GameHooks): GameInstance {
-  let lanes = buildLanes()
+  const lanes = buildLanes()
   let player = { x: 6, row: ROWS - 1 }
   let maxRow = ROWS - 1
   let lives = MAX_LIVES

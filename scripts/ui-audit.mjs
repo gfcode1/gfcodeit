@@ -6,7 +6,7 @@ const executablePath = process.env.CHROME
 const results = []
 const check = (name, ok, detail = '') => {
   results.push({ name, ok: !!ok })
-  console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? ' — ' + detail : ''}`)
+  console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? ` — ${detail}` : ''}`)
 }
 
 const HARNESS = `
@@ -49,7 +49,9 @@ const HARNESS = `
 </div>
 `
 
-const browser = await chromium.launch(executablePath ? { executablePath, args: ['--no-sandbox'] } : { args: ['--no-sandbox'] })
+const browser = await chromium.launch(
+  executablePath ? { executablePath, args: ['--no-sandbox'] } : { args: ['--no-sandbox'] },
+)
 const page = await browser.newPage({ viewport: { width: 360, height: 900 } })
 const errors = []
 page.on('pageerror', (e) => errors.push(String(e)))
@@ -103,7 +105,9 @@ try {
         const rect = child.getBoundingClientRect()
         if (rect.width === 0 || rect.height === 0) continue
         if (rect.right > hostRect.right + 1.5 || rect.left < hostRect.left - 1.5) {
-          problems.push(`${host.tagName.toLowerCase()} > ${child.className || child.tagName.toLowerCase()} (${Math.round(rect.width)}px)`)
+          problems.push(
+            `${host.tagName.toLowerCase()} > ${child.className || child.tagName.toLowerCase()} (${Math.round(rect.width)}px)`,
+          )
         }
       }
     }

@@ -9,10 +9,12 @@ export const MEMORY_PRESSURE_THRESHOLD = 0.85
 
 /** True when the browser reports high JS heap usage (Chromium only). */
 export function memoryPressure(): boolean {
-  const memory = (performance as Performance & {
-    memory?: { usedJSHeapSize: number; jsHeapSizeLimit: number }
-  }).memory
-  if (!memory || !memory.jsHeapSizeLimit) return false
+  const memory = (
+    performance as Performance & {
+      memory?: { usedJSHeapSize: number; jsHeapSizeLimit: number }
+    }
+  ).memory
+  if (!memory?.jsHeapSizeLimit) return false
   return memory.usedJSHeapSize / memory.jsHeapSizeLimit > MEMORY_PRESSURE_THRESHOLD
 }
 

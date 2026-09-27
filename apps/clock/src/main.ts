@@ -1,12 +1,12 @@
 import './styles.css'
 import type { GFApi } from '../../../src/core/sdk'
 import type { ScheduleItem } from '../../../src/core/types'
-import type { Panel, PanelContext, Prefs, Tab } from './types'
 import { el } from './dom'
-import { createClockPanel } from './panel-clock'
-import { createTimerPanel } from './panel-timer'
 import { createAlarmPanel } from './panel-alarm'
+import { createClockPanel } from './panel-clock'
 import { createStopwatchPanel } from './panel-stopwatch'
+import { createTimerPanel } from './panel-timer'
+import type { Panel, PanelContext, Prefs, Tab } from './types'
 
 const PREFS_KEY = 'prefs'
 const DEFAULT_PREFS: Prefs = { hour12: false, showSeconds: true, tab: 'clock' }

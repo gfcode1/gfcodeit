@@ -28,7 +28,7 @@
   border-radius: var(--gf-radius);
   font-family: var(--gf-font-mono);
   font-size: var(--gf-fs-xs);
-  letter-spacing: .05em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   cursor: pointer;
 }
@@ -67,7 +67,7 @@
   font-family: var(--gf-font-mono);
   font-size: clamp(48px, 16vw, 96px);
   line-height: 1;
-  letter-spacing: .02em;
+  letter-spacing: 0.02em;
   text-align: center;
 }
 
@@ -108,7 +108,7 @@
 }
 
 .alarm.is-off {
-  opacity: .55;
+  opacity: 0.55;
 }
 
 .alarm__time {

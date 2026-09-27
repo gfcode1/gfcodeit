@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -56,9 +56,21 @@ if (existsSync(appsDir)) {
     seen.add(manifest.id)
 
     check(typeof manifest.name === 'string' && manifest.name.length > 0, 'missing name', label)
-    check(typeof manifest.icon === 'string' && HEXCODE.test(manifest.icon), 'icon must be an OpenMoji hexcode e.g. "1F4DD"', label)
-    check(typeof manifest.version === 'string' && SEMVER.test(manifest.version), 'version must be semver (x.y.z)', label)
-    check(typeof manifest.sdk === 'string' && RANGE.test(manifest.sdk), 'sdk must be a semver range e.g. "^1.0.0"', label)
+    check(
+      typeof manifest.icon === 'string' && HEXCODE.test(manifest.icon),
+      'icon must be an OpenMoji hexcode e.g. "1F4DD"',
+      label,
+    )
+    check(
+      typeof manifest.version === 'string' && SEMVER.test(manifest.version),
+      'version must be semver (x.y.z)',
+      label,
+    )
+    check(
+      typeof manifest.sdk === 'string' && RANGE.test(manifest.sdk),
+      'sdk must be a semver range e.g. "^1.0.0"',
+      label,
+    )
     check(typeof manifest.entry === 'string', 'missing entry', label)
     check(
       !manifest.category || CATEGORIES.includes(manifest.category),

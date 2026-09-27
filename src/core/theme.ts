@@ -11,7 +11,13 @@ export function resolveTheme(mode: ThemeMode): ResolvedTheme {
 
 function readableInk(hex: string): string {
   const clean = hex.replace('#', '')
-  const value = clean.length === 3 ? clean.split('').map((c) => c + c).join('') : clean
+  const value =
+    clean.length === 3
+      ? clean
+          .split('')
+          .map((c) => c + c)
+          .join('')
+      : clean
   const r = parseInt(value.slice(0, 2), 16) / 255
   const g = parseInt(value.slice(2, 4), 16) / 255
   const b = parseInt(value.slice(4, 6), 16) / 255

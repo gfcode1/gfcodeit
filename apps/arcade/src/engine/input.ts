@@ -18,6 +18,13 @@ export const KEY_ACTIONS: Record<string, string> = {
 
 export const PAUSE_KEYS = new Set(['Escape', 'KeyP'])
 
+export const OPPOSITE_ACTION: Record<string, string> = {
+  up: 'down',
+  down: 'up',
+  left: 'right',
+  right: 'left',
+}
+
 export interface SwipeResult {
   action: 'up' | 'down' | 'left' | 'right'
 }

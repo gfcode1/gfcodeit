@@ -191,12 +191,11 @@ export async function fetchStations(gf: GFApi, params: SearchParams = {}): Promi
 }
 
 export async function fetchTags(gf: GFApi, signal?: AbortSignal): Promise<Tag[]> {
-  const raw = await jsonGet<RawTag[]>(
-    gf,
-    'tags',
-    '/json/tags?order=stationcount&reverse=true&limit=200',
-    { ttlMs: TAGS_TTL_MS, staleTtlMs: TAGS_STALE_MS, signal },
-  )
+  const raw = await jsonGet<RawTag[]>(gf, 'tags', '/json/tags?order=stationcount&reverse=true&limit=200', {
+    ttlMs: TAGS_TTL_MS,
+    staleTtlMs: TAGS_STALE_MS,
+    signal,
+  })
   return raw
     .map((tag) => ({ name: (tag.name ?? '').trim(), stationCount: Number(tag.stationcount ?? 0) || 0 }))
     .filter((tag) => tag.name.length > 0)

@@ -1,5 +1,5 @@
-import { initSDK, type GFApi } from '../src/core/sdk'
 import { setAssetBase } from '../src/core/icons'
+import { type GFApi, initSDK } from '../src/core/sdk'
 import '../src/ui/index'
 
 // The runtime lives at <base>framework/v1/gf-runtime.js; assets are two levels up.

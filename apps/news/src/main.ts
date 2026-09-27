@@ -1,16 +1,10 @@
 import './styles.css'
 import type { GFApi } from '../../../src/core/sdk'
-import {
-  DEFAULT_PROXY_TEMPLATE,
-  PROXY_PRESETS,
-  fetchFeed,
-  hashKey,
-  type FeedItem,
-} from './feeds'
-import { loadCatalog, type Catalog, type CatalogGroup } from './catalog'
+import { type Catalog, type CatalogGroup, loadCatalog } from './catalog'
+import { DEFAULT_PROXY_TEMPLATE, type FeedItem, fetchFeed, hashKey, PROXY_PRESETS } from './feeds'
+import { renderRich } from './html'
 import { buildOpml, parseOpml } from './opml'
 import { createNewsStore, normalizeUrl, readKey, type SavedArticle, type Subscription } from './store'
-import { renderRich } from './html'
 
 interface Article extends FeedItem {
   feedId: string
@@ -168,7 +162,12 @@ async function start(): Promise<void> {
     let resolvedTitle = title?.trim() ?? ''
     if (!resolvedTitle) {
       try {
-        const parsed = await fetchFeed(gf.cache, { id: hashKey(value), url: value }, store.data.settings.proxyTemplate, { force: true })
+        const parsed = await fetchFeed(
+          gf.cache,
+          { id: hashKey(value), url: value },
+          store.data.settings.proxyTemplate,
+          { force: true },
+        )
         resolvedTitle = parsed.title
       } catch {
         resolvedTitle = hostOf(value)
@@ -360,9 +359,7 @@ async function start(): Promise<void> {
       const add = el('gf-button')
       add.textContent = 'Add feed by URL'
       add.addEventListener('click', () => openAddFeedModal())
-      content.append(
-        emptyState('1F4F0', 'No feeds yet', 'Add a feed to start reading the news.', [browse, add]),
-      )
+      content.append(emptyState('1F4F0', 'No feeds yet', 'Add a feed to start reading the news.', [browse, add]))
       return
     }
 
@@ -392,7 +389,12 @@ async function start(): Promise<void> {
       retry.textContent = 'Retry'
       retry.addEventListener('click', () => void loadArticles(true))
       content.append(
-        emptyState('26A0', 'Could not load feeds', 'The configured proxy may be unavailable. Try another one in Settings.', [retry]),
+        emptyState(
+          '26A0',
+          'Could not load feeds',
+          'The configured proxy may be unavailable. Try another one in Settings.',
+          [retry],
+        ),
       )
       return
     }
@@ -400,7 +402,11 @@ async function start(): Promise<void> {
     const visible = unreadOnly ? unread() : articles
     if (visible.length === 0) {
       content.append(
-        emptyState('2705', unreadOnly ? 'All caught up' : 'No articles', unreadOnly ? 'No unread articles.' : 'These feeds returned no items.'),
+        emptyState(
+          '2705',
+          unreadOnly ? 'All caught up' : 'No articles',
+          unreadOnly ? 'No unread articles.' : 'These feeds returned no items.',
+        ),
       )
       return
     }
@@ -562,7 +568,10 @@ async function start(): Promise<void> {
     list.append(accordion)
   }
 
-  function catalogFeedRow(feed: { title: string; url: string; description?: string }, group: CatalogGroup): HTMLElement {
+  function catalogFeedRow(
+    feed: { title: string; url: string; description?: string },
+    group: CatalogGroup,
+  ): HTMLElement {
     const row = el('div', 'catalog-feed')
     const main = el('div', 'catalog-feed__main')
     const title = el('div', 'catalog-feed__title')
@@ -614,7 +623,9 @@ async function start(): Promise<void> {
     const title = el('div', 'article-row__title')
     title.textContent = entry.title
     const meta = el('div', 'article-row__meta')
-    meta.textContent = [entry.feedTitle, entry.date ? new Date(entry.date).toLocaleDateString() : ''].filter(Boolean).join(' · ')
+    meta.textContent = [entry.feedTitle, entry.date ? new Date(entry.date).toLocaleDateString() : '']
+      .filter(Boolean)
+      .join(' · ')
     head.append(title, meta)
     const excerpt = el('div', 'article-row__excerpt')
     excerpt.textContent = entry.excerpt
@@ -646,7 +657,8 @@ async function start(): Promise<void> {
     const title = el('div', 'section-title')
     title.textContent = 'Feed proxy'
     const hint = el('p', 'hint')
-    hint.textContent = 'RSS feeds do not send CORS headers, so they are fetched through a public proxy. rss2json works out of the box but is rate-limited; raw proxies are less reliable and may be unavailable. A custom template must contain {url}.'
+    hint.textContent =
+      'RSS feeds do not send CORS headers, so they are fetched through a public proxy. rss2json works out of the box but is rate-limited; raw proxies are less reliable and may be unavailable. A custom template must contain {url}.'
     const select = el('gf-select')
     const currentTemplate = store.data.settings.proxyTemplate
     const presetMatch = PROXY_PRESETS.find((preset) => preset.template === currentTemplate)

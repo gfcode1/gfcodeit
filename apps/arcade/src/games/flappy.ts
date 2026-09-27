@@ -63,6 +63,7 @@ export function create(hooks: GameHooks): GameInstance {
   return {
     update(dt) {
       if (flapFrame > 0) flapFrame -= dt
+      if (!started) return
       velocity += GRAVITY * dt
       birdY += velocity * dt
 

@@ -140,9 +140,7 @@ export class Scheduler {
   }
 
   async list(appId?: string): Promise<ScheduleItem[]> {
-    return [...this.items.values()]
-      .filter((item) => !appId || item.appId === appId)
-      .sort((a, b) => a.fireAt - b.fireAt)
+    return [...this.items.values()].filter((item) => !appId || item.appId === appId).sort((a, b) => a.fireAt - b.fireAt)
   }
 
   async clear(appId?: string): Promise<void> {
@@ -203,7 +201,7 @@ export class Scheduler {
   ): Promise<ScheduleItem | null> {
     const { store, done } = await getStore(STORE, 'readwrite')
     const record = (await reqAsPromise(store.get(id))) as ScheduleRecord | undefined
-    if (!record || record.item.status !== 'pending' || record.item.fireAt !== expectedFireAt) {
+    if (record?.item.status !== 'pending' || record.item.fireAt !== expectedFireAt) {
       await done
       return null
     }

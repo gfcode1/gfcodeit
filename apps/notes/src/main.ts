@@ -144,9 +144,7 @@ async function start(): Promise<void> {
     function renderList(): void {
       list.innerHTML = ''
       const q = query.trim().toLowerCase()
-      const visible = q
-        ? notes.filter((n) => `${n.title} ${n.body}`.toLowerCase().includes(q))
-        : notes
+      const visible = q ? notes.filter((n) => `${n.title} ${n.body}`.toLowerCase().includes(q)) : notes
 
       if (visible.length === 0) {
         const empty = el('gf-empty-state')

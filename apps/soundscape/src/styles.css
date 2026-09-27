@@ -57,7 +57,7 @@ body {
 .sound-section__title {
   font-family: var(--gf-font-mono);
   font-size: var(--gf-fs-sm);
-  letter-spacing: .08em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
@@ -81,7 +81,9 @@ body {
   box-shadow: var(--gf-shadow-1);
   cursor: pointer;
   user-select: none;
-  transition: transform var(--gf-dur-fast) var(--gf-ease), box-shadow var(--gf-dur-fast) var(--gf-ease),
+  transition:
+    transform var(--gf-dur-fast) var(--gf-ease),
+    box-shadow var(--gf-dur-fast) var(--gf-ease),
     background var(--gf-dur-fast) var(--gf-ease);
 }
 
@@ -125,7 +127,7 @@ body {
 .sound-card__pct {
   font-family: var(--gf-font-mono);
   font-size: var(--gf-fs-xs);
-  letter-spacing: .04em;
+  letter-spacing: 0.04em;
   min-width: 34px;
   text-align: right;
 }
@@ -160,7 +162,7 @@ body {
   flex: none;
   font-family: var(--gf-font-mono);
   font-size: var(--gf-fs-xs);
-  letter-spacing: .06em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--gf-muted);
   min-width: 72px;
@@ -177,7 +179,7 @@ body {
 .mixer__master-label {
   font-family: var(--gf-font-mono);
   font-size: var(--gf-fs-xs);
-  letter-spacing: .06em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--gf-muted);
 }

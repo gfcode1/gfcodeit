@@ -1,4 +1,4 @@
-import { GFElement, define } from './base'
+import { define, GFElement } from './base'
 
 const FIELD = `
   :host { display: block; color: var(--gf-ink); font-family: var(--gf-font-sans); }

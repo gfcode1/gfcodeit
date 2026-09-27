@@ -2,8 +2,12 @@ import '../styles/base.css'
 import '../ui/index'
 import './shell.css'
 
-import { apps, getApp } from '../core/registry'
+import { installAudioUnlock, playAlarm, stopAlarm } from '../core/audio'
+import { downloadBackup, exportProfile } from '../core/backup'
+import { setAssetBase } from '../core/icons'
 import { openDB } from '../core/idb'
+import { ACTIVITY_ROUTE, APP_ROUTE_PREFIX, HOME_ROUTE, PROFILES_ROUTE, SETTINGS_ROUTE } from '../core/lifecycle'
+import { createMediaHub } from '../core/media'
 import {
   addRecent,
   createProfile,
@@ -17,19 +21,19 @@ import {
   toggleFavorite,
   updateProfile,
 } from '../core/profile'
-import { applyTheme, resolveTheme, watchSystemTheme } from '../core/theme'
-import { downloadBackup, exportProfile } from '../core/backup'
-import { setAssetBase } from '../core/icons'
+import { apps, getApp } from '../core/registry'
 import { scheduler } from '../core/scheduler'
-import { createMediaHub } from '../core/media'
-import { installAudioUnlock, playAlarm, stopAlarm } from '../core/audio'
+import { applyTheme, resolveTheme, watchSystemTheme } from '../core/theme'
+import type { AppManifest, BridgeMethod, Profile, ScheduleDraft, ScheduleItem, ThemeMode } from '../core/types'
 import { toast } from '../ui/overlay'
+import { renderActivity } from './activity'
 import { AppHost } from './app-host'
 import {
   asRecord,
   optBool,
   optNumber,
   optString,
+  type Params,
   parseMediaMetadata,
   parseMediaSource,
   parseThemeMode,
@@ -37,36 +41,29 @@ import {
   reqInt,
   reqNumber,
   reqString,
-  type Params,
 } from './bridge-guards'
-import { createMediaBar } from './media-bar'
+import { type Command, openCommandPalette } from './command-palette'
 import { createLauncher } from './launcher'
-import { renderProfiles, renderSettings } from './views'
-import { renderActivity } from './activity'
-import { openCommandPalette, type Command } from './command-palette'
+import { createMediaBar } from './media-bar'
 import { setupPWA } from './pwa'
-import {
-  ACTIVITY_ROUTE,
-  APP_ROUTE_PREFIX,
-  HOME_ROUTE,
-  PROFILES_ROUTE,
-  SETTINGS_ROUTE,
-} from '../core/lifecycle'
-import type {
-  AppManifest,
-  BridgeMethod,
-  Profile,
-  ScheduleDraft,
-  ScheduleItem,
-  ThemeMode,
-} from '../core/types'
+import { renderProfiles, renderSettings } from './views'
 
 setAssetBase(import.meta.env.BASE_URL)
 
-const topbar = document.getElementById('topbar')!
+const controlbar = document.getElementById('controlbar')!
 const view = document.getElementById('view')!
 const hostContainer = document.getElementById('host')!
 const nav = document.getElementById('nav')!
+
+// Persistent regions: only the context and actions are re-rendered per route,
+// so the media section owned by the media hub survives navigation.
+const controlContext = document.createElement('div')
+controlContext.className = 'controlbar__context'
+const mediaBarHost = document.createElement('div')
+mediaBarHost.id = 'media-bar'
+const controlActions = document.createElement('div')
+controlActions.className = 'controlbar__actions'
+controlbar.append(controlContext, mediaBarHost, controlActions)
 
 let profile!: Profile
 let appHost: AppHost | null = null
@@ -76,7 +73,6 @@ let online = navigator.onLine
 /* ------------------------------- media ------------------------------- */
 
 const mediaHub = createMediaHub()
-const mediaBarHost = document.getElementById('media-bar')!
 const mediaBar = createMediaBar(mediaBarHost, {
   onOpenApp: (appId) => navigate(`${APP_ROUTE_PREFIX}${appId}`),
   onToggle: () => {
@@ -92,11 +88,34 @@ const mediaBar = createMediaBar(mediaBarHost, {
     if (owner) void mediaHub.setMasterVolume(owner, volume, 80)
   },
 })
-mediaHub.onState((state) => mediaBar.update(state, state.owner ? getApp(state.owner) : undefined))
+mediaHub.onState((state) => {
+  const active = !!state.owner && state.sources.length > 0
+  controlbar.dataset.media = active ? 'on' : 'off'
+  mediaBar.update(state, state.owner ? getApp(state.owner) : undefined)
+})
 mediaHub.onOwnerChange((owner, state) => {
   if (appHost?.appId === owner) appHost.notifyMedia(state)
 })
 mediaHub.onCommand((command) => appHost?.emitMediaCommand(command))
+
+// Global media keys (Electron): play/pause and stop act on the audio owner,
+// next/previous are forwarded to the owning app so it can change tracks.
+function installDesktopIntegration(): void {
+  const desktop = window.gfDesktop
+  if (!desktop) return
+  desktop.onMediaKey((action) => {
+    const owner = mediaHub.state().owner
+    if (action === 'playpause') {
+      if (owner) void mediaHub.toggle(owner)
+    } else if (action === 'stop') {
+      if (owner) void mediaHub.clear(owner)
+    } else {
+      appHost?.emitMediaCommand({ action })
+    }
+  })
+}
+
+installDesktopIntegration()
 
 function setConnection(next: boolean): void {
   online = next
@@ -117,7 +136,7 @@ function applyBadges(): void {
     }
   }
   const total = [...badges.values()].reduce((sum, value) => sum + value, 0)
-  const top = document.querySelector<HTMLElement>('.topbar__badge')
+  const top = document.querySelector<HTMLElement>('.controlbar__badge')
   if (top) {
     top.textContent = String(total)
     top.hidden = total === 0
@@ -165,9 +184,14 @@ function navigateHome(): void {
   navigate(HOME_ROUTE)
 }
 
-/* ------------------------------- topbar ------------------------------- */
+/* ---------------------------- control bar ---------------------------- */
 
-function button(content: string | HTMLElement, label: string, onClick: () => void, variant = 'ghost'): HTMLButtonElement {
+function button(
+  content: string | HTMLElement,
+  label: string,
+  onClick: () => void,
+  variant = 'ghost',
+): HTMLButtonElement {
   const el = document.createElement('button')
   el.className = 'icon-btn'
   el.type = 'button'
@@ -186,18 +210,16 @@ function button(content: string | HTMLElement, label: string, onClick: () => voi
   return el
 }
 
-function renderTopbar(): void {
-  topbar.innerHTML = ''
+function renderControlbar(): void {
   const isApp = currentRoute().startsWith(APP_ROUTE_PREFIX)
   const appId = isApp ? currentRoute().slice(APP_ROUTE_PREFIX.length) : null
   const app = appId ? getApp(appId) : undefined
 
-  const left = document.createElement('div')
-  left.className = 'topbar__side'
+  controlContext.innerHTML = ''
   if (isApp) {
-    left.append(button('2B05', 'Back', navigateHome))
+    controlContext.append(button('2B05', 'Back', navigateHome))
     const title = document.createElement('div')
-    title.className = 'topbar__title'
+    title.className = 'controlbar__title'
     if (app) {
       const icon = document.createElement('gf-icon')
       icon.setAttribute('codepoint', app.icon)
@@ -205,58 +227,64 @@ function renderTopbar(): void {
       title.append(icon)
     }
     const name = document.createElement('span')
+    name.className = 'controlbar__title-text'
     name.textContent = app?.name ?? 'App'
     title.append(name)
-    left.append(title)
+    controlContext.append(title)
   } else {
     const brand = document.createElement('div')
-    brand.className = 'topbar__brand'
+    brand.className = 'controlbar__brand'
     brand.textContent = 'GFCode'
     const meta = document.createElement('span')
-    meta.className = 'topbar__meta gf-label'
+    meta.className = 'controlbar__meta gf-label'
     meta.textContent = `${apps.length} apps`
     const totalBadge = document.createElement('span')
-    totalBadge.className = 'topbar__badge'
+    totalBadge.className = 'controlbar__badge'
     totalBadge.hidden = true
     brand.append(meta, totalBadge)
-    left.append(brand)
+    controlContext.append(brand)
   }
 
-  const right = document.createElement('div')
-  right.className = 'topbar__side'
+  controlActions.innerHTML = ''
 
   const connection = document.createElement('span')
   connection.className = 'conn'
   connection.textContent = 'Offline'
   connection.hidden = online
-  right.append(connection)
+  controlActions.append(connection)
 
   const palette = button('1F50D', 'Command palette', () => openCommands())
   const shortcut = document.createElement('span')
-  shortcut.className = 'topbar__kbd'
+  shortcut.className = 'controlbar__kbd'
   shortcut.textContent = '⌘K'
   palette.append(shortcut)
-  right.append(palette)
+  controlActions.append(palette)
 
+  // Activity/Settings are duplicated by the bottom nav on mobile, so only add
+  // them to the bar on desktop (where the nav is hidden) and outside apps.
   if (!isApp) {
+    const desktop = document.createElement('div')
+    desktop.className = 'controlbar__desktop'
     const activity = button('1F514', 'Activity', () => navigate(ACTIVITY_ROUTE))
     const pending = scheduler.pendingCount
     if (pending > 0) {
       const count = document.createElement('span')
-      count.className = 'topbar__count'
+      count.className = 'controlbar__count'
       count.textContent = String(pending)
       activity.append(count)
     }
     const settings = button('2699', 'Settings', () => navigate(SETTINGS_ROUTE))
-    right.append(activity, settings)
+    desktop.append(activity, settings)
+    controlActions.append(desktop)
   }
 
-  right.append(buildProfileMenu(!isApp))
-  topbar.append(left, right)
+  controlActions.append(buildProfileMenu(!isApp))
 }
 
 function buildProfileMenu(enabled: boolean): HTMLElement {
   const menu = document.createElement('gf-menu')
+  // The bar sits at the bottom, so menus must open upward.
+  menu.setAttribute('placement', 'up')
   // Profile switcher is only available from the home shell (not inside an app).
   const trigger = document.createElement('button')
   trigger.className = 'profile-trigger'
@@ -309,7 +337,7 @@ async function switchProfile(id: string): Promise<void> {
   applyTheme(profile.themeMode, profile.accent)
   appHost?.notifyProfile()
   void scheduler.load(profile.id)
-  renderTopbar()
+  renderControlbar()
   renderRoute()
 }
 
@@ -317,7 +345,7 @@ async function switchProfile(id: string): Promise<void> {
 
 function renderRoute(): void {
   const route = currentRoute()
-  renderTopbar()
+  renderControlbar()
   renderNav()
 
   if (route.startsWith(APP_ROUTE_PREFIX)) {
@@ -437,7 +465,7 @@ async function handleDeleteProfile(id: string): Promise<void> {
     applyTheme(profile.themeMode, profile.accent)
   }
   toast('Profile deleted', { variant: 'danger' })
-  renderTopbar()
+  renderControlbar()
   void renderProfilesView()
 }
 
@@ -483,7 +511,7 @@ function showSystemNotification(item: ScheduleItem): void {
 function decrementBadge(appId: string): void {
   badges.set(appId, Math.max(0, (badges.get(appId) ?? 1) - 1))
   applyBadges()
-  renderTopbar()
+  renderControlbar()
 }
 
 function showAlarm(item: ScheduleItem): void {
@@ -540,7 +568,7 @@ function presentFired(item: ScheduleItem): void {
   }
   showSystemNotification(item)
   if (currentRoute() === ACTIVITY_ROUTE) void renderActivityView()
-  renderTopbar()
+  renderControlbar()
 }
 
 function mediaOwner(): string {

@@ -98,10 +98,7 @@ export interface StoreSession {
   done: Promise<void>
 }
 
-export async function getStore(
-  storeName: string,
-  mode: IDBTransactionMode = 'readonly',
-): Promise<StoreSession> {
+export async function getStore(storeName: string, mode: IDBTransactionMode = 'readonly'): Promise<StoreSession> {
   const db = await openDB([storeName])
   const transaction = db.transaction(storeName, mode)
   const done = new Promise<void>((resolve, reject) => {

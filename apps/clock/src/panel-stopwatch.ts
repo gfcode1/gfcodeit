@@ -1,6 +1,6 @@
-import type { Panel, PanelContext, StopwatchState } from './types'
 import { el } from './dom'
 import { formatStopwatch } from './format'
+import type { Panel, PanelContext, StopwatchState } from './types'
 
 const KEY = 'stopwatch'
 
@@ -111,7 +111,10 @@ export async function createStopwatchPanel(ctx: PanelContext): Promise<Panel> {
     updateDisplay()
     actions.innerHTML = ''
     if (state.running) {
-      actions.append(button('Lap', () => void lap()), button('Pause', () => void pause(), 'primary'))
+      actions.append(
+        button('Lap', () => void lap()),
+        button('Pause', () => void pause(), 'primary'),
+      )
     } else {
       actions.append(button(elapsed() > 0 ? 'Resume' : 'Start', () => void start(), 'primary'))
       if (elapsed() > 0) actions.append(button('Reset', () => void reset(), 'ghost'))

@@ -134,18 +134,19 @@ export function create(hooks: GameHooks): GameInstance {
         return
       }
       if (input.action === 'up' && press) {
+        const { x: pressX, y: pressY } = press
         const acted = press.acted
         press = null
         if (acted) return
         if (flagMode) {
-          toggleFlag(x, y)
+          toggleFlag(pressX, pressY)
           return
         }
         if (firstClick) {
           firstClick = false
-          plantMines(x, y)
+          plantMines(pressX, pressY)
         }
-        reveal(x, y)
+        reveal(pressX, pressY)
       }
     },
     render(ctx, width, height) {

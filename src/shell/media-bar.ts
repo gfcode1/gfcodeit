@@ -25,6 +25,17 @@ function iconButton(codepoint: string, label: string): { button: HTMLButtonEleme
   return { button, icon }
 }
 
+function volumeSlider(className: string, callbacks: MediaBarCallbacks): HTMLElement {
+  const slider = document.createElement('gf-slider')
+  slider.className = className
+  slider.setAttribute('min', '0')
+  slider.setAttribute('max', '100')
+  slider.addEventListener('gf-input', (event) => {
+    callbacks.onVolume((event as CustomEvent<{ value: number }>).detail.value / 100)
+  })
+  return slider
+}
+
 export function createMediaBar(host: HTMLElement, callbacks: MediaBarCallbacks): MediaBar {
   const el = host
   el.classList.add('media-bar')
@@ -44,27 +55,52 @@ export function createMediaBar(host: HTMLElement, callbacks: MediaBarCallbacks):
   const controls = document.createElement('div')
   controls.className = 'media-bar__controls'
 
-  const volume = document.createElement('gf-slider')
-  volume.className = 'media-bar__volume'
-  volume.setAttribute('min', '0')
-  volume.setAttribute('max', '100')
+  const volume = volumeSlider('media-bar__volume', callbacks)
 
   const toggle = iconButton('25B6', 'Play')
   const stop = iconButton('23F9', 'Stop')
   const open = iconButton('1F517', 'Open app')
+  open.button.classList.add('media-bar__open')
 
   controls.append(volume, toggle.button, stop.button, open.button)
-  el.append(art, info, controls)
+
+  // Compact-mode overflow: on narrow screens the volume and open controls move
+  // into an upward-opening menu so the single bar still fits.
+  const more = document.createElement('gf-menu')
+  more.className = 'media-bar__more'
+  more.setAttribute('placement', 'up')
+  // No OpenMoji glyph for the vertical ellipsis, so use the character directly.
+  const moreTrigger = document.createElement('button')
+  moreTrigger.className = 'icon-btn'
+  moreTrigger.type = 'button'
+  moreTrigger.setAttribute('aria-label', 'More controls')
+  moreTrigger.title = 'More controls'
+  moreTrigger.textContent = '⋯'
+  moreTrigger.slot = 'trigger'
+  const morePanel = document.createElement('div')
+  morePanel.slot = 'panel'
+  const menuLabel = document.createElement('span')
+  menuLabel.className = 'media-bar__menu-label gf-label'
+  menuLabel.textContent = 'Volume'
+  const menuVolume = volumeSlider('media-bar__volume-menu', callbacks)
+  const menuOpen = document.createElement('button')
+  menuOpen.type = 'button'
+  menuOpen.setAttribute('data-menu-item', '')
+  menuOpen.textContent = 'Open app'
+  morePanel.append(menuLabel, menuVolume, menuOpen)
+  more.append(moreTrigger, morePanel)
+
+  el.append(art, info, controls, more)
 
   let owner: string | null = null
   let artKey = ''
 
-  volume.addEventListener('gf-input', (event) => {
-    callbacks.onVolume((event as CustomEvent<{ value: number }>).detail.value / 100)
-  })
   toggle.button.addEventListener('click', () => callbacks.onToggle())
   stop.button.addEventListener('click', () => callbacks.onStop())
   open.button.addEventListener('click', () => {
+    if (owner) callbacks.onOpenApp(owner)
+  })
+  menuOpen.addEventListener('click', () => {
     if (owner) callbacks.onOpenApp(owner)
   })
 
@@ -114,8 +150,9 @@ export function createMediaBar(host: HTMLElement, callbacks: MediaBarCallbacks):
       }
     }
 
-    if (!volume.contains(document.activeElement)) {
-      volume.setAttribute('value', String(Math.round(next.master * 100)))
+    const percent = String(Math.round(next.master * 100))
+    for (const slider of [volume, menuVolume]) {
+      if (!slider.contains(document.activeElement)) slider.setAttribute('value', percent)
     }
   }
 

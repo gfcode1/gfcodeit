@@ -135,7 +135,10 @@ export function create(hooks: GameHooks): GameInstance {
   function step(): void {
     if (!collides(current, 0, 1)) {
       current.y += 1
-      if (softDrop) score += 1
+      if (softDrop) {
+        score += 1
+        hooks.setScore(score)
+      }
     } else {
       lock()
     }

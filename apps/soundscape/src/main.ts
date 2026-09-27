@@ -1,6 +1,6 @@
 import './styles.css'
 import type { GFApi } from '../../../src/core/sdk'
-import { categories, getSound, type Category, type SoundDef } from './catalog'
+import { type Category, categories, getSound, type SoundDef } from './catalog'
 import { SoundEngine } from './engine'
 
 const ACTIVE_KEY = 'active'

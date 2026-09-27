@@ -5,9 +5,7 @@ const modules = import.meta.glob<AppManifest>('../../apps/*/app.manifest.json', 
   import: 'default',
 })
 
-export const apps: AppManifest[] = Object.values(modules).sort((a, b) =>
-  a.name.localeCompare(b.name),
-)
+export const apps: AppManifest[] = Object.values(modules).sort((a, b) => a.name.localeCompare(b.name))
 
 export function getApp(id: string): AppManifest | undefined {
   return apps.find((app) => app.id === id)

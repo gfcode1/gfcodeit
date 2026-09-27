@@ -6,10 +6,12 @@ const executablePath = process.env.CHROME
 const results = []
 const check = (name, ok, detail = '') => {
   results.push({ name, ok: !!ok })
-  console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? ' — ' + detail : ''}`)
+  console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? ` — ${detail}` : ''}`)
 }
 
-const browser = await chromium.launch(executablePath ? { executablePath, args: ['--no-sandbox'] } : { args: ['--no-sandbox'] })
+const browser = await chromium.launch(
+  executablePath ? { executablePath, args: ['--no-sandbox'] } : { args: ['--no-sandbox'] },
+)
 const context = await browser.newContext({ viewport: { width: 420, height: 860 } })
 const page = await context.newPage()
 const errors = []
@@ -26,7 +28,10 @@ try {
   })
   check('manifest is served and valid', !!manifest, manifest ? manifest.short_name : 'missing')
   check('manifest has standalone display', manifest?.display === 'standalone')
-  check('manifest declares maskable icon', (manifest?.icons ?? []).some((i) => i.purpose === 'maskable'))
+  check(
+    'manifest declares maskable icon',
+    (manifest?.icons ?? []).some((i) => i.purpose === 'maskable'),
+  )
   check('manifest declares 192 and 512 icons', (manifest?.icons ?? []).length >= 3)
 
   // Service worker registration

@@ -1,5 +1,5 @@
-import { defineConfig } from 'vite'
 import { resolve } from 'node:path'
+import { defineConfig } from 'vite'
 
 // Builds the shared framework runtime once into public/framework/v1/.
 // Apps load it at runtime via <script> (see src/core/sdk.ts / app bootstrap).

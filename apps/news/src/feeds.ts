@@ -194,13 +194,8 @@ export function parseFeedXml(xml: string, source: FeedSource): ParsedFeed {
   const channel = descendants(root, 'channel')[0] ?? root
 
   const title = textOf(descendants(root, 'title')[0])
-  const siteUrl = resolveUrl(
-    atom ? atomLink(root) : textOf(firstChild(channel, 'link')),
-    source.url,
-  )
-  const description = textOf(
-    atom ? firstChild(root, 'subtitle') : firstChild(channel, 'description'),
-  )
+  const siteUrl = resolveUrl(atom ? atomLink(root) : textOf(firstChild(channel, 'link')), source.url)
+  const description = textOf(atom ? firstChild(root, 'subtitle') : firstChild(channel, 'description'))
 
   const nodes = atom ? descendants(root, 'entry') : descendants(root, 'item')
   const base = siteUrl || source.url
@@ -278,7 +273,8 @@ function parseRss2Json(data: Rss2JsonFeed, source: FeedSource): ParsedFeed {
     const enclosureLink = entry.enclosure?.link ?? ''
     const image = entry.thumbnail
       ? resolveUrl(entry.thumbnail, base)
-      : enclosureLink && (enclosureType.startsWith('image/') || /\.(jpe?g|png|gif|webp|avif)(\?|$)/i.test(enclosureLink))
+      : enclosureLink &&
+          (enclosureType.startsWith('image/') || /\.(jpe?g|png|gif|webp|avif)(\?|$)/i.test(enclosureLink))
         ? resolveUrl(enclosureLink, base)
         : imageOfContent(content, base)
     items.push({

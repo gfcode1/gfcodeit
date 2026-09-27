@@ -21,7 +21,7 @@ export interface Category {
   sounds: SoundDef[]
 }
 
-const SOUND_URLS = import.meta.glob('../sounds/**/*.{mp3,wav}', {
+const SOUND_URLS = import.meta.glob('../sounds/**/*.mp3', {
   eager: true,
   query: '?url',
   import: 'default',
@@ -184,9 +184,9 @@ const RAW: RawCategory[] = [
     title: 'Noise',
     icon: '1F50A',
     sounds: [
-      { id: 'white-noise', label: 'White Noise', file: 'noise/white-noise.wav' },
-      { id: 'pink-noise', label: 'Pink Noise', file: 'noise/pink-noise.wav' },
-      { id: 'brown-noise', label: 'Brown Noise', file: 'noise/brown-noise.wav' },
+      { id: 'white-noise', label: 'White Noise', file: 'noise/white-noise.mp3' },
+      { id: 'pink-noise', label: 'Pink Noise', file: 'noise/pink-noise.mp3' },
+      { id: 'brown-noise', label: 'Brown Noise', file: 'noise/brown-noise.mp3' },
     ],
   },
   {
@@ -194,11 +194,11 @@ const RAW: RawCategory[] = [
     title: 'Binaural Beats',
     icon: '1F9E0',
     sounds: [
-      { id: 'binaural-delta', label: 'Delta', file: 'binaural/binaural-delta.wav' },
-      { id: 'binaural-theta', label: 'Theta', file: 'binaural/binaural-theta.wav' },
-      { id: 'binaural-alpha', label: 'Alpha', file: 'binaural/binaural-alpha.wav' },
-      { id: 'binaural-beta', label: 'Beta', file: 'binaural/binaural-beta.wav' },
-      { id: 'binaural-gamma', label: 'Gamma', file: 'binaural/binaural-gamma.wav' },
+      { id: 'binaural-delta', label: 'Delta', file: 'binaural/binaural-delta.mp3' },
+      { id: 'binaural-theta', label: 'Theta', file: 'binaural/binaural-theta.mp3' },
+      { id: 'binaural-alpha', label: 'Alpha', file: 'binaural/binaural-alpha.mp3' },
+      { id: 'binaural-beta', label: 'Beta', file: 'binaural/binaural-beta.mp3' },
+      { id: 'binaural-gamma', label: 'Gamma', file: 'binaural/binaural-gamma.mp3' },
     ],
   },
   {
@@ -207,7 +207,7 @@ const RAW: RawCategory[] = [
     icon: '1F6A8',
     sounds: [
       { id: 'alarm', label: 'Alarm', file: 'alarm.mp3' },
-      { id: 'silence', label: 'Silence', file: 'silence.wav' },
+      { id: 'silence', label: 'Silence', file: 'silence.mp3' },
     ],
   },
 ]

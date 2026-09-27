@@ -106,6 +106,10 @@ export function create(hooks: GameHooks): GameInstance {
       }
     },
     onPointer(input) {
+      if (input.action === 'up') {
+        ducking = false
+        return
+      }
       if (input.action !== 'down') return
       if (input.y > input.height * 0.55) ducking = true
       else jump()

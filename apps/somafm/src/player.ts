@@ -1,5 +1,5 @@
 import type { GFApi } from '../../../src/core/sdk'
-import type { MediaSourceInit, MediaState } from '../../../src/core/types'
+import type { MediaSourceInit, MediaSourceState, MediaState } from '../../../src/core/types'
 import type { Channel, Song, StreamVariant } from './somafm'
 
 export type PlayerStatus = 'idle' | 'loading' | 'playing' | 'paused' | 'error'
@@ -40,11 +40,7 @@ export class RadioPlayer {
   private level = 1
   private readonly unsubscribe: () => void
 
-  constructor(
-    gf: GFApi,
-    resolveStream: (stream: StreamVariant) => Promise<string[]>,
-    handlers: PlayerHandlers,
-  ) {
+  constructor(gf: GFApi, resolveStream: (stream: StreamVariant) => Promise<string[]>, handlers: PlayerHandlers) {
     this.gf = gf
     this.resolveStream = resolveStream
     this.handlers = handlers
@@ -69,7 +65,7 @@ export class RadioPlayer {
 
   /** Re-attaches to a channel the shell is still playing (on app remount). */
   async refresh(): Promise<void> {
-    let sources
+    let sources: MediaSourceState[]
     try {
       sources = await this.gf.media.list()
     } catch {
@@ -175,7 +171,9 @@ export class RadioPlayer {
   }
 
   private initFor(url: string): MediaSourceInit {
-    return { url, crossOrigin: true, volume: this.level, ...this.metadata() }
+    // Radio streams play as opaque (no-cors) requests; requesting CORS makes any
+    // edge node without an ACAO header a hard playback failure.
+    return { url, volume: this.level, ...this.metadata() }
   }
 
   private onMediaState(state: MediaState): void {

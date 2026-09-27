@@ -47,8 +47,11 @@ body {
   box-shadow: var(--gf-shadow-2);
   font: inherit;
   cursor: pointer;
-  transition: background var(--gf-dur-fast) var(--gf-ease), color var(--gf-dur-fast) var(--gf-ease),
-    transform var(--gf-dur-fast) var(--gf-ease), box-shadow var(--gf-dur-fast) var(--gf-ease);
+  transition:
+    background var(--gf-dur-fast) var(--gf-ease),
+    color var(--gf-dur-fast) var(--gf-ease),
+    transform var(--gf-dur-fast) var(--gf-ease),
+    box-shadow var(--gf-dur-fast) var(--gf-ease);
 }
 
 .arcade-tile:hover {

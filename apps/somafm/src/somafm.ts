@@ -117,21 +117,17 @@ function toChannel(raw: RawChannel): Channel | null {
 }
 
 export async function fetchChannels(cache: GFCacheApi, signal?: AbortSignal): Promise<Channel[]> {
-  const payload = await cache.fetchJson<{ channels?: RawChannel[] }>(
-    'channels',
-    `${API_BASE}/channels.json`,
-    { ttlMs: CHANNELS_TTL_MS, staleTtlMs: CHANNELS_STALE_MS, signal },
-  )
+  const payload = await cache.fetchJson<{ channels?: RawChannel[] }>('channels', `${API_BASE}/channels.json`, {
+    ttlMs: CHANNELS_TTL_MS,
+    staleTtlMs: CHANNELS_STALE_MS,
+    signal,
+  })
   return (payload.channels ?? [])
     .map(toChannel)
     .filter((channel): channel is Channel => channel !== null && channel.streams.length > 0)
 }
 
-export async function fetchSongs(
-  cache: GFCacheApi,
-  channelId: string,
-  signal?: AbortSignal,
-): Promise<Song[]> {
+export async function fetchSongs(cache: GFCacheApi, channelId: string, signal?: AbortSignal): Promise<Song[]> {
   try {
     const payload = await cache.fetchJson<{ songs?: RawSong[] }>(
       `songs:${channelId}`,

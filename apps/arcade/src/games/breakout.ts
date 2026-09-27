@@ -59,7 +59,7 @@ export function create(hooks: GameHooks): GameInstance {
   function launch(): void {
     if (dead || launched) return
     launched = true
-    const angle = (Math.random() * 0.7 - 0.35)
+    const angle = Math.random() * 0.7 - 0.35
     vx = Math.sin(angle) * speed
     vy = -Math.cos(angle) * speed
     hooks.audio.blip()
@@ -176,7 +176,10 @@ export function create(hooks: GameHooks): GameInstance {
 
       bricks.forEach((brick) => {
         if (!brick.alive) return
-        ctx.fillStyle = flash > 0 ? '#ffe066' : ['#ff6b6b', '#ffa94d', '#ffd43b', '#51cf66', '#4dabf7'][Math.floor(brick.y / 10) % 5] as string
+        ctx.fillStyle =
+          flash > 0
+            ? '#ffe066'
+            : (['#ff6b6b', '#ffa94d', '#ffd43b', '#51cf66', '#4dabf7'][Math.floor(brick.y / 10) % 5] as string)
         ctx.fillRect(brick.x, brick.y, brick.w, BRICK_H)
       })
 

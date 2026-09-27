@@ -1,7 +1,7 @@
-import type { Profile, ThemeMode } from '../core/types'
+import { downloadBackup, exportAll, exportApp, exportProfile, importBackup, readBackupFile } from '../core/backup'
 import { ACCENTS } from '../core/profile'
 import { apps } from '../core/registry'
-import { downloadBackup, exportAll, exportApp, exportProfile, importBackup, readBackupFile } from '../core/backup'
+import type { Profile, ThemeMode } from '../core/types'
 import { toast } from '../ui/overlay'
 
 export interface SettingsOptions {
@@ -76,14 +76,7 @@ export function renderSettings(options: SettingsOptions): HTMLElement {
     'Framework: GFCode.'
   credits.body.append(creditsText)
 
-  root.append(
-    header,
-    appearance.card,
-    renderNotificationsCard(),
-    renderDataCard(options),
-    storage.card,
-    credits.card,
-  )
+  root.append(header, appearance.card, renderNotificationsCard(), renderDataCard(options), storage.card, credits.card)
   return root
 }
 

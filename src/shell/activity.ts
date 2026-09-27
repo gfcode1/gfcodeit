@@ -1,6 +1,6 @@
 import { scheduler } from '../core/scheduler'
-import { toast } from '../ui/overlay'
 import type { ScheduleItem } from '../core/types'
+import { toast } from '../ui/overlay'
 
 export interface ActivityOptions {
   onChanged: () => void
@@ -51,7 +51,10 @@ function scheduleRow(item: ScheduleItem, options: ActivityOptions): HTMLElement 
   title.textContent = item.title
   const sub = el('span', 'muted')
   const parts = [formatWhen(item.fireAt), repeatLabel(item)].filter(Boolean)
-  sub.textContent = [new Date(item.fireAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), ...parts.slice(1)]
+  sub.textContent = [
+    new Date(item.fireAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    ...parts.slice(1),
+  ]
     .filter(Boolean)
     .join(' · ')
   meta.append(title, sub)
@@ -117,10 +120,7 @@ export async function renderActivity(options: ActivityOptions): Promise<HTMLElem
   const root = el('div', 'view')
   const header = el('gf-page-header')
   header.setAttribute('title', 'Activity')
-  header.setAttribute(
-    'subtitle',
-    pending.length === 0 ? 'Nothing scheduled.' : `${pending.length} scheduled · profile`,
-  )
+  header.setAttribute('subtitle', pending.length === 0 ? 'Nothing scheduled.' : `${pending.length} scheduled · profile`)
   root.append(header)
 
   const upcoming = section('Upcoming', pending, options)

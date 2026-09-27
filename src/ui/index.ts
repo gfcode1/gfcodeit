@@ -7,5 +7,5 @@ import './extra'
 import './calendar'
 import './emoji-picker'
 
-export { toast } from './overlay'
 export type { ToastOptions } from './overlay'
+export { toast } from './overlay'

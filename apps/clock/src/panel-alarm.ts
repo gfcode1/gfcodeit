@@ -1,7 +1,7 @@
-import type { Alarm, AlarmRepeat, Panel, PanelContext } from './types'
 import type { ScheduleItem } from '../../../src/core/types'
 import { el } from './dom'
 import { formatTimeOfDay, nextTimeOfDay, normalizeTimeOfDay } from './format'
+import type { Alarm, AlarmRepeat, Panel, PanelContext } from './types'
 
 const KEY = 'alarms'
 
